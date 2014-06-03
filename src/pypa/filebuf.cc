@@ -1,0 +1,94 @@
+#include <pypa/filebuf.hh>
+
+#if defined(WIN32)
+#include <windows.h>
+#else
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#endif
+#include <stdio.h>
+
+namespace pypa {
+
+    inline file_handle_t open_file(char const * file_path) {
+        file_handle_t v{};
+#if defined(WIN32)
+        v.win = ::CreateFileA(file_path, GENERIC_READ, 0, 0, OPEN_EXISTING, 0, 0);
+#else
+        v.unix = ::open(file_path, O_RDONLY);
+#endif
+        return v;
+    }
+
+    FileBuf::FileBuf(char const * file_path)
+    : handle_(open_file(file_path))
+    , buffer_{}
+    , position_{0}
+    , length_{0}
+    , current_{EOF}
+    , utf8_{false}
+    {
+        fill_buffer();
+        if(length_ >= 3) {
+            utf8_ = buffer_[0] == '\xEF'
+                 && buffer_[1] == '\xBB'
+                 && buffer_[2] == '\xBF';
+            position_ += utf8_ ? 3 : 0;
+        }
+    }
+
+    FileBuf::~FileBuf() {
+#if defined(WIN32)
+        if (handle_.win != INVALID_HANDLE_VALUE) {
+            CloseHandle(handle_.win);
+        }
+#else
+        ::close(handle_.unix);
+#endif
+    }
+
+    bool FileBuf::utf8() const {
+        return utf8_;
+    }
+
+    char FileBuf::next() {
+        if(position_ >= length_) {
+            if(length_ == 0 || !fill_buffer()) {
+                current_ = EOF;
+            }
+        }
+        if (position_ < length_) {
+            current_ = buffer_[position_++];
+        }
+        return current_;
+    }
+
+    char FileBuf::current() const {
+        return current_;
+    }
+
+    bool FileBuf::eof() const {
+        return current_ == EOF;
+    }
+
+    bool FileBuf::fill_buffer() {
+#if defined(WIN32)
+        int n = -1;
+        if (handle_.win != INVALID_HANDLE_VALUE) {
+            DWORD bytes_read = 0;
+            if (::ReadFile(handle_.win, buffer_, BufferSize, &bytes_read, 0)) {
+                n = int(bytes_read);
+            }
+        }
+#else
+        int n = read(handle_.unix, buffer_, BufferSize);
+#endif
+        position_ = 0;
+        length_ = n <= 0 ? 0 : unsigned(n);
+        return length_ != 0;
+    }
+}
+
+

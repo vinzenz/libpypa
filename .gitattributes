@@ -1,0 +1,15 @@
+*.c          text eol=lf
+*.cc         text eol=lf
+*.cxx        text eol=lf
+*.cpp        text eol=lf
+*.py         text eol=lf
+*.h          text eol=lf
+*.hh         text eol=lf
+*.hpp        text eol=lf
+*.hxx        text eol=lf
+*.rc         text eol=lf
+*.txt        text eol=lf
+*.bat        text eol=crlf
+*.vc*proj*   text eol=crlf
+*.ini        text eol=crlf
+*.sln        text eol=crlf
