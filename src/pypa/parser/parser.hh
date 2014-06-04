@@ -8,7 +8,7 @@ namespace pypa {
 
 class Parser {
 public:
-    bool parse(Lexer & lexer, AstPtr ast);
+    bool parse(Lexer & lexer, AstModulePtr & ast);
 };
 
 }

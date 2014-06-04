@@ -1,4 +1,4 @@
-PYPA_CXXFLAGS=-std=c++11 -I$(top_srcdir)/src $(CXXFLAGS)
+PYPA_CXXFLAGS=-std=c++11 -I$(top_srcdir)/src
 
 lib_LTLIBRARIES=libpypa.la
 libpypa_la_CXXFLAGS=$(PYPA_CXXFLAGS)

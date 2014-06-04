@@ -2,7 +2,7 @@
 #include <stdio.h>
 
 int main() {
-    pypa::AstPtr ast;
+    pypa::AstModulePtr ast;
     pypa::Parser parser;
     pypa::Lexer lexer("test.py");
     if(parser.parse(lexer, ast)) {

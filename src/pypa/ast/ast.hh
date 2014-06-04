@@ -1,6 +1,7 @@
 #ifndef GUARD_PYPA_AST_AST_HH_INCLUDED
 #define GUARD_PYPA_AST_AST_HH_INCLUDED
 
+#include <type_traits>
 #include <memory>
 #include <string>
 #include <vector>
@@ -36,7 +37,12 @@ enum class AstUnaryOpType {
     Sub,
 };
 
-enum class AstCompareType {
+enum class AstBoolOpType {
+    And,
+    Or
+};
+
+enum class AstCompareOpType {
     Equals,
     In,
     Is,
@@ -124,10 +130,19 @@ struct Ast {
 typedef std::shared_ptr<Ast> AstPtr;
 typedef std::vector<AstPtr> AstLst;
 
+template<typename T>
+inline T AstInit(AstType, T*) {
+    return T{};
+}
+
+inline Ast AstInit(AstType t, Ast*) {
+    return Ast{t, 0, 0};
+}
+
 template<AstType Type, typename Base = Ast>
 struct AstT : Base {
     static constexpr AstType TYPE = Type;
-    AstT() : Base{Type, 0, 0} {}
+    AstT() : Base(AstInit(Type, (Base*)nullptr)) {}
 };
 
 template<AstType Type, typename Base>
@@ -166,17 +181,19 @@ struct AstAlias : AstT<AstType::Alias> {
     String name;
     String as_name;
 };
-typedef std::vector<AstAlias> AstAliasList;
+typedef std::shared_ptr<AstAlias> AstAliasPtr;
+typedef std::vector<AstAliasPtr> AstAliasList;
 
 struct AstComprehension : AstT<AstType::Comprehension> {
     AstExpr target;
     AstExpr iter;
     AstExprList ifs;
 };
-typedef std::vector<AstComprehension> AstComprList;
+typedef std::shared_ptr<AstComprehension> AstComprPtr;
+typedef std::vector<AstComprPtr> AstComprList;
 
 struct AstSliceKind : Ast {};
-typedef std::shared_ptr<AstSliceKind> AstSlicePtr;
+typedef std::shared_ptr<AstSliceKind> AstSliceKindPtr;
 
 template<AstType Type>
 struct AstSliceT : AstT<Type, AstSliceKind> {
@@ -190,27 +207,36 @@ struct AstSliceT : AstT<Type, AstSliceKind> {
 };
 
 struct AstEllipsis : AstSliceT<AstType::Ellipsis> {};
+typedef std::shared_ptr<AstEllipsis> AstEllipsisPtr;
 
 struct AstSlice : AstSliceT<AstType::Slice> {
     AstExpr lower;
     AstExpr upper;
     AstExpr step;
 };
+typedef std::shared_ptr<AstSlice> AstSlicePtr;
 
 struct AstExtSlice : AstSliceT<AstType::ExtSlice> {
     AstExprList dims;
 };
+typedef std::shared_ptr<AstExtSlice> AstExtSlicePtr;
 
 struct AstIndex : AstSliceT<AstType::Index> {
     AstExpr value;
 };
+typedef std::shared_ptr<AstIndex> AstIndexPtr;
 
 struct AstModule : AstT<AstType::Module> {
     AstStmtList body;
 };
+typedef std::shared_ptr<AstModule> AstModulePtr;
 
-#define PYPA_AST_STMT(AST_TYPE) struct Ast##AST_TYPE : AstStmtT<AstType::AST_TYPE>
-#define PYPA_AST_EXPR(AST_TYPE) struct Ast##AST_TYPE : AstExprT<AstType::AST_TYPE>
+#define PYPA_AST_STMT(AST_TYPE) \
+    typedef std::shared_ptr<struct Ast##AST_TYPE> Ast##AST_TYPE##Ptr; \
+    struct Ast##AST_TYPE : AstStmtT<AstType::AST_TYPE>
+#define PYPA_AST_EXPR(AST_TYPE) \
+    typedef std::shared_ptr<struct Ast##AST_TYPE> Ast##AST_TYPE##Ptr; \
+    struct Ast##AST_TYPE : AstExprT<AstType::AST_TYPE>
 
 PYPA_AST_STMT(Assert) {
     AstExpr expression;
@@ -241,8 +267,8 @@ PYPA_AST_EXPR(BinOp) {
 };
 
 PYPA_AST_EXPR(BoolOp) {
-    AstType     op;
-    AstExprList values;
+    AstBoolOpType op;
+    AstExprList   values;
 };
 
 PYPA_AST_STMT(Break) {};
@@ -256,7 +282,7 @@ PYPA_AST_STMT(Call) {
 };
 
 PYPA_AST_STMT(Compare) {
-    std::vector<AstCompareType> ops;
+    std::vector<AstCompareOpType> ops;
     AstExprList                 comperators;
     AstExpr                     left;
 };
@@ -411,9 +437,9 @@ PYPA_AST_EXPR(Str) {
 };
 
 PYPA_AST_EXPR(Subscript) {
-    AstExpr     value;
-    AstSlicePtr slice;
-    AstContext  context;
+    AstExpr         value;
+    AstSliceKindPtr slice;
+    AstContext      context;
 };
 
 PYPA_AST_STMT(TryExcept) {
