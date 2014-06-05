@@ -10,7 +10,7 @@ int main() {
     pypa::Parser parser;
     pypa::Lexer lexer("test.py");
     if(parser.parse(lexer, ast)) {
-        printf("Parsing successfull %d\n", int(ast->body.front()->type));
+        printf("Parsing successfull %d\n", int(ast->body->items.front()->type));
         dump(ast);
     }
     else {

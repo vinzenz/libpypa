@@ -18,3 +18,5 @@ src/pypa/ast/types.hh
 src/pypa/ast/macros.hh
 src/pypa/ast/dump.cc
 src/pypa/ast/base.hh
+src/pypa/parser/state.hh
+src/pypa/parser/apply.hh

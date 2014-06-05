@@ -1,4 +1,5 @@
 #include <pypa/ast/visitor.hh>
+#include <cassert>
 
 namespace pypa {
 
@@ -10,9 +11,12 @@ struct dump_visitor {
 
     void operator() (AstModule const & p) {
         printf("Module:\n\n");
-        for(auto stmt : p.body) {
-            visit(stmt);
-        }
+        visit(p.body);
+    }
+
+    void operator() (AstSuite const & a) {
+        printf("Suite:\n");
+        visit(a.items);
     }
 
     void operator() (AstArguments const & a) {
@@ -29,6 +33,39 @@ struct dump_visitor {
         visit(p.body);
     }
 
+    void operator() (AstDict const & p) {
+        printf("Dict {");
+        assert(p.keys.size() == p.values.size());
+        for(std::size_t i = 0; i < p.keys.size(); ++i) {
+            if(i) printf(", "); visit(p.keys[i]); printf(": "); visit(p.values[i]);
+        }
+        printf("}");
+    }
+
+    void operator() (AstSet const & p) {
+        printf("Set {");
+        for(std::size_t i = 0; i < p.elements.size(); ++i) {
+            if(i) printf(", "); visit(p.elements[i]);
+        }
+        printf("}");
+    }
+
+    void operator() (AstList const & p) {
+        printf("List [");
+        for(std::size_t i = 0; i < p.elements.size(); ++i) {
+            if(i) printf(", "); visit(p.elements[i]);
+        }
+        printf("]");
+    }
+
+    void operator() (AstTuple const & p) {
+        printf("Tuple (");
+        for(std::size_t i = 0; i < p.elements.size(); ++i) {
+            if(i) printf(", "); visit(p.elements[i]);
+        }
+        printf(")");
+    }
+
     void visit(AstContext p) {
         printf("[Context: ");
         switch(p) {
@@ -40,6 +77,18 @@ struct dump_visitor {
         case AstContext::Del:       printf("Del"); break;
         }
         printf("] ");
+    }
+
+    void operator() (AstStr const & p) {
+        printf("%s", p.value.c_str());
+    }
+
+    void operator() (AstStatement const & s) {
+        printf("[Statement? %d]\n", int(s.type));
+    }
+
+    void operator() (AstExpression const & s) {
+        printf("[Expression? %d]\n", int(s.type));
     }
 
     void operator() (AstWithItem const & p) {
@@ -92,7 +141,7 @@ struct dump_visitor {
         pypa::visit(*this, p);
     }
 
-    void visit(AstPtr p) {
+    void visit(AstPtr const p) {
         if(p) {
             pypa::visit(*this, *p);
         } else {

@@ -54,5 +54,9 @@ struct AstSliceT : AstT<Type, AstSliceKind> {
     );
 };
 
+PYPA_AST_STMT(Suite) {
+    AstStmtList items;
+};
+
 }
 #endif // GUARD_PYPA_AST_BASE_HH_INCLUDED

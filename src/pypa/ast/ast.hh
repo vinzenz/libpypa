@@ -6,6 +6,7 @@
 
 namespace pypa {
 
+
 PYPA_AST_TYPE_DECL_DERIVED(Arguments) {
     AstExprList arguments;
     AstExprList defaults;
@@ -72,13 +73,13 @@ PYPA_AST_STMT(Call) {
 PYPA_AST_STMT(ClassDef) {
     AstExprList bases;
     AstExprList decorators;
-    AstStmtList body;
+    AstSuitePtr body;
     String      name;
 };
 
 PYPA_AST_STMT(Continue) {};
 
-PYPA_AST_STMT(Compare) {
+PYPA_AST_EXPR(Compare) {
     std::vector<AstCompareOpType> ops;
     AstExprList                 comperators;
     AstExpr                     left;
@@ -129,7 +130,7 @@ PYPA_AST_STMT(Exec) {
 };
 
 PYPA_AST_STMT(Except) {
-    AstStmtList body;
+    AstSuitePtr body;
     AstExpr type;
     AstExpr name;
 };
@@ -146,16 +147,21 @@ PYPA_AST_TYPE_DECL_SLICE_KIND(ExtSlice) {
 DEF_AST_TYPE_BY_ID1(ExtSlice);
 
 PYPA_AST_STMT(For) {
-    AstStmtList body;
+    AstSuitePtr body;
     AstStmtList orelse;
     AstExpr     target;
     AstExpr     iter;
 };
 
+PYPA_AST_EXPR(ForExpr) {
+    AstExprList items;
+    AstExprList generators;
+};
+
 PYPA_AST_STMT(FunctionDef) {
    String       name;
    AstArguments args;
-   AstStmtList  body;
+   AstSuitePtr  body;
    AstExprList  decorators;
 };
 
@@ -164,7 +170,7 @@ PYPA_AST_STMT(Global) {
 };
 
 PYPA_AST_STMT(If) {
-    AstStmtList body;
+    AstSuitePtr body;
     AstStmtList orelse;
     AstExpr     test;
 };
@@ -222,7 +228,7 @@ PYPA_AST_EXPR(Number) {
 };
 
 PYPA_AST_TYPE_DECL_DERIVED(Module) {
-    AstStmtList body;
+    AstSuitePtr body;
 };
 DEF_AST_TYPE_BY_ID1(Module);
 
@@ -241,9 +247,9 @@ PYPA_AST_EXPR(Repr) {
 };
 
 PYPA_AST_STMT(Raise) {
-    AstExpr type;
-    AstExpr instance;
-    AstExpr traceback;
+    AstExpr arg0;
+    AstExpr arg1;
+    AstExpr arg2;
 };
 
 PYPA_AST_STMT(Return) {
@@ -284,7 +290,7 @@ PYPA_AST_STMT(TryExcept) {
 };
 
 PYPA_AST_STMT(TryFinally) {
-    AstStmtList body;
+    AstSuitePtr body;
     AstStmtList final_body;
 };
 
@@ -300,7 +306,7 @@ PYPA_AST_EXPR(UnaryOp) {
 
 PYPA_AST_STMT(While) {
     AstExpr     test;
-    AstStmtList body;
+    AstSuitePtr body;
     AstStmtList orelse;
 };
 
@@ -312,12 +318,16 @@ DEF_AST_TYPE_BY_ID1(WithItem);
 
 PYPA_AST_STMT(With) {
     AstWithItemList items;
-    AstStmtList body;
+    AstSuitePtr body;
 };
 
 
-PYPA_AST_STMT(Yield) {
+PYPA_AST_EXPR(YieldExpr) {
     AstExprList args;
+};
+
+PYPA_AST_STMT(Yield) {
+    AstYieldExprPtr yield;
 };
 
 }

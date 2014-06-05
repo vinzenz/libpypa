@@ -181,10 +181,11 @@ namespace pypa {
         } while (first == '0' || first == '1');
         put_char(first);
         tok.ident = {Token::NumberBinary, TokenKind::Number, TokenClass::Literal};
-        if (tok.value.size() == 2) {
+        if (tok.value.size() <= 2) {
             tok.ident = {Token::Invalid, TokenKind::Error, TokenClass::Default};
             add_error(tok);
         }
+        tok.value.erase(0, 2);
         return tok;
     }
 
@@ -198,10 +199,13 @@ namespace pypa {
             tok.ident = {Token::Invalid, TokenKind::Error, TokenClass::Default};
             add_error(tok);
         }
+        tok.value.erase(0, 2);
         return tok;
     }
 
     TokenInfo Lexer::get_number_octal(TokenInfo & tok, char first) {
+        tok.value.push_back(first);
+        first = next_char();
         while (first >= '0' && first < '8') {
             tok.value.push_back(first);
             first = next_char();
@@ -225,6 +229,11 @@ namespace pypa {
         if (non_oct) {
             tok.ident = {Token::Invalid, TokenKind::Error, TokenClass::Default};
             add_error(tok);
+        }
+        if(tok.value.size() >= 2) {
+            if(tok.value[1] == 'o' || tok.value[1] == 'O') {
+                tok.value.erase(0, 2);
+            }
         }
         return tok;
     }
