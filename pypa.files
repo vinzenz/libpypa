@@ -12,3 +12,9 @@ src/pypa/parser/parser.hh
 src/pypa/parser/test.cc
 src/pypa/filebuf.cc
 src/pypa/filebuf.hh
+src/pypa/ast/ast_type.inl
+src/pypa/ast/visitor.hh
+src/pypa/ast/types.hh
+src/pypa/ast/macros.hh
+src/pypa/ast/dump.cc
+src/pypa/ast/base.hh

@@ -1,11 +1,14 @@
 PYPA_CXXFLAGS=-std=c++11 -I$(top_srcdir)/src
+AM_CFLAGS=-DIEEE_8087
 
 lib_LTLIBRARIES=libpypa.la
 libpypa_la_CXXFLAGS=$(PYPA_CXXFLAGS)
 libpypa_la_SOURCES=\
 	pypa/filebuf.cc \
 	pypa/ast/ast.cc \
+	pypa/ast/dump.cc \
 	pypa/lexer/lexer.cc \
+	pypa/parser/dtoa.c \
 	pypa/parser/parser.cc \
 	$(NULL)
 

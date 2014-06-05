@@ -51,7 +51,7 @@ namespace pypa {
         return info_;
     }
 
-    TokenInfo Lexer::next() {
+    TokenInfo Lexer::next() {        
         char c0 = skip();
         if(!token_buffer_.empty()) {
             put_char(c0);
@@ -331,6 +331,7 @@ namespace pypa {
         bool continuation = false;
         while((c = next_char()) != EOF) {
             switch(c) {
+            case EOF: return c;
             case '#':
                 c = skip_comment();
                 if(c == EOF) {

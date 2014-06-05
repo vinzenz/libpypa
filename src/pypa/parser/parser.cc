@@ -4,6 +4,8 @@
 #include <deque>
 #include <stack>
 
+extern "C" double strtod(const char *s00, char **se);
+
 namespace pypa {
 namespace {
     typedef std::unordered_set<std::string> Symbols;
@@ -43,14 +45,23 @@ namespace {
             while(s.popped.size() != s.savepoints.top()) {
                 unpop(s);
             }
+            s.savepoints.pop();
         }
     }
+
+    struct StateGuard {
+        StateGuard(State & s) : s_(&s) { save(s); }
+        ~StateGuard() { if(s_) revert(*s_); }
+        bool commit() { s_ = 0; return true; }
+    private:
+        State * s_;
+    };
 
     void commit(State & s) {
         s.popped = {};
     }
 
-    TokenInfo top(State & s) {
+    TokenInfo const & top(State & s) {
         return s.tok_cur;
     }
 
@@ -64,6 +75,59 @@ namespace {
 
     Token token(TokenInfo const & tok) {
         return tok.ident.id();
+    }
+
+    void location(State & s, AstPtr a) {
+        a->line = top(s).line;
+        a->column = top(s).column;
+    }
+
+    void location(State & s, Ast & a) {
+        a.line = top(s).line;
+        a.column = top(s).column;
+    }
+
+    bool is(TokenInfo const & info, Token tok) {
+        return token(info) == tok;
+    }
+
+    bool is(TokenInfo const & info, TokenKind k) {
+        return kind(info) == k;
+    }
+
+    bool is(TokenInfo const & info, TokenClass c) {
+        return cls(info) == c;
+    }
+
+    bool is(State & s, Token tok) {
+        return is(top(s), tok);
+    }
+
+    bool is(State & s, TokenKind k) {
+        return is(top(s), k);
+    }
+
+    bool is(State & s, TokenClass c) {
+        return is(top(s), c);
+    }
+
+    template< typename T >
+    bool expect(State & s, T t) {
+        if(is(top(s), t)) {
+            pop(s);
+            return true;
+        }
+        return false;
+    }
+
+    template< typename T >
+    bool consume_value(State & s, T t, String & v) {
+        if(is(s, t)) {
+            v = top(s).value;
+            pop(s);
+            return true;
+        }
+        return false;
     }
 }
 
@@ -89,6 +153,32 @@ bool push_apply(State & s, ContainerT & c, bool(*f)(State &, TargetT&)) {
 }
 
 // Parser
+bool statement(State & s, AstStmt & ast);
+bool expression(State & s, AstExpr & ast);
+
+bool expression(State & s, AstExprList & lst) {
+    for(;;) {
+        AstExpr one;
+        if(!expression(s, one)) {
+            break;
+        }
+        lst.push_back(one);
+        if(!expect(s, TokenKind::Comma)) {
+            break;
+        }
+    }
+    return !lst.empty();
+}
+
+bool statement(State & s, AstStmtList & lst) {
+    for(;;) {
+        expect(s, TokenKind::NewLine) || expect(s, TokenKind::SemiColon);
+        if(!push_apply<AstStmt>(s, lst, statement)) {
+            break;
+        }
+    }
+    return !lst.empty();
+}
 
 bool bin_op(State & s, AstBinOpPtr & ast) {
     return false;
@@ -131,22 +221,80 @@ bool test_list(State & s, AstExpr & ast) {
 }
 
 bool test(State & s, AstExpr & ast) {
-    return false;
+    // TODO: Implement properly
+    return expression(s, ast);
 }
 
 bool raise(State & s, AstRaisePtr & ast) {
     return false;
 }
 
-bool retrn(State & s, AstReturnPtr & ast) {
+bool _return(State & s, AstReturnPtr & ast) {
     return false;
 }
 
 bool yield(State & s, AstYieldPtr & ast) {
+    StateGuard guard(s);
+    if(expect(s, Token::KeywordYield)) {
+        ast = std::shared_ptr<AstYield>();
+        if(expression(s, ast->args)) {
+            return guard.commit();
+        }
+        ast.reset();
+    }
     return false;
 }
 
 bool global(State & s, AstGlobalPtr & ast) {
+    return false;
+}
+
+bool as(State & s, AstExpr & ast) {
+    if(expect(s, Token::KeywordAs)) {
+        return expression(s, ast);
+    }
+    return false;
+}
+
+bool with_item(State & s, AstWithItemPtr & ast) {
+    ast = std::make_shared<AstWithItem>();
+    if(test(s, ast->context)) {
+        as(s, ast->optional);
+        return true;
+    }
+    ast.reset();
+    return false;
+}
+
+bool suite(State & s, AstStmtList & lst) {
+    StateGuard guard(s);
+    expect(s, Token::Indent);
+    if(statement(s, lst)) {
+        expect(s, Token::Dedent);
+        return guard.commit();
+    }
+    return false;
+}
+
+bool with(State & s, AstWithPtr & ast) {
+    StateGuard guard(s);
+    if(expect(s, Token::KeywordWith)) {
+        ast = std::make_shared<AstWith>();
+        AstWithItemPtr item;
+        while(with_item(s, item)) {
+            ast->items.push_back(item);
+            if(!expect(s, TokenKind::Comma)) {
+                break;
+            }
+        }
+        if(expect(s, TokenKind::Colon)){
+            expect(s, Token::NewLine);
+            if(suite(s, ast->body)) {
+                return guard.commit();
+            }
+        }
+        ast.reset();
+    }
     return false;
 }
 
@@ -166,7 +314,7 @@ bool flow_statement(State & s, AstStmt & ast) {
     case Token::KeywordRaise:
         return apply<AstRaisePtr>(s, ast, raise);
     case Token::KeywordReturn:
-        return apply<AstReturnPtr>(s, ast, retrn);
+        return apply<AstReturnPtr>(s, ast, _return);
     case Token::KeywordYield:
         return apply<AstYieldPtr>(s, ast, yield);
         break;
@@ -288,111 +436,189 @@ bool op_unary(State & s, AstUnaryOpType & op) {
     return false;
 }
 
+bool number(State & s, AstNumberPtr & ast) {
+    if(is(s, Token::NumberFloat)) {
+        String const & dstr = top(s).value;
+        char * e = 0;
+        double result = strtod(dstr.c_str(), &e);
+        if(!e || *e) {
+            return false;
+        }
+        ast = std::make_shared<AstNumber>();
+        ast->num_type = AstNumber::Float;
+        ast->floating = result;
+        pop(s);
+        return true;
+    }
+    return false;
+}
+
 bool expression(State & s, AstExpr & ast) {
+    if(apply<AstNumberPtr>(s, ast, number)) return true;
+    return false;
+}
+
+bool compare(State & s, AstComparePtr & ast) {
+    StateGuard guard(s);
+    ast = std::make_shared<AstCompare>();
+    if(expression(s, ast->left)) {
+        AstCompareOpType op;
+        while(op_compare(s, op)) {
+            AstExpr expr;
+            if(!expression(s, expr)) {
+                return false;
+            }
+            ast->comperators.push_back(expr);
+            ast->ops.push_back(op);
+        }
+        if(!ast->comperators.empty()) {
+            return guard.commit();
+        }
+    }
     return false;
 }
 
 bool param_def(State & s, AstNamePtr & param_name, AstExpr & param_default) {
-    if(kind(top(s)) == TokenKind::Name) {
-        save(s);
-        param_name = std::make_shared<AstName>();
-        param_name->context = AstContext::Param;
-        param_name->id = top(s).value;
-        pop(s);
-        if(kind(top(s)) == TokenKind::Equal) {
-            pop();
+    param_name = std::make_shared<AstName>();
+    param_name->context = AstContext::Param;
+    StateGuard guard(s);
+    if(consume_value(s, TokenKind::Name, param_name->id)) {
+        if(expect(s, TokenKind::Equal)) {
             if(expression(s, param_default)) {
-                return true;
+                return guard.commit();
             }
         }
         else {
-            return true;
+            return guard.commit();
         }
-        revert(s);
     }
     return false;
 }
 
 bool param_list(State & s, AstExprList & names, AstExprList & defaults) {
-    save(s);
+    StateGuard guard(s);
     for(;;) {
-        AstExpr pname, pdef;
-        if(param_def(s, pname, pdef)) {
-            names.push_back(pname);
-            defaults.push_back(pdef);
-            if(token(top(s)) != Token::DelimComma) {
-                return true;
+        AstExpr pdef;
+        AstNamePtr pname;
+        if(names.empty() || !names.empty() && expect(s, TokenKind::Comma)) {
+            if(param_def(s, pname, pdef)) {
+                names.push_back(pname);
+                defaults.push_back(pdef);
+                if(!is(s, TokenKind::Comma)) {
+                    break;
+                }
             }
-            pop();
+            else if(!names.empty()) {
+                unpop(s);
+                break;
+            }
+        }
+        else {
+            break;
         }
     }
-    revert(s);
-    return false;
+    return !names.empty() ? guard.commit() : false;
 }
 
 bool kwarg_param(State & s, String & name) {
-    if(kind(top(s)) == TokenKind::DoubleStar) {
-        save(s);
-        pop();
-        if(kind(top(s)) == TokenKind::Name) {
-            if(cls(top(s)) != TokenClass::Keyword) {
-                name = top(s)->value;
-                pop();
-                return true;
-            }
-        }
-        revert(s);
+    if(is(s, TokenKind::DoubleStar)) {
+        StateGuard guard(s);
+        pop(s);
+        if(is(s, TokenKind::Name) && !is(s, TokenClass::Keyword)) {
+            consume_value(s, TokenKind::Name, name);
+            return guard.commit();
+        }        
     }
     return false;
 }
 
 bool args_params(State & s, String & name) {
-    if(kind(top(s)) == TokenKind::Star) {
-        save(s);
-        pop();
-        if(kind(top(s)) == TokenKind::Name) {
-            if(cls(top(s)) != TokenClass::Keyword) {
-                name = top(s)->value;
-                pop();
-                return true;
-            }
+    if(expect(s, TokenKind::Star)) {
+        StateGuard guard(s);
+        if(is(s, TokenKind::Name) && !is(s, TokenClass::Keyword)) {
+            consume_value(s, TokenKind::Name, name);
+            return guard.commit();
         }
-        revert(s);
     }
     return false;
 }
 
 bool varargslist(State & s, AstArguments & args) {
-
-}
-
-bool parameters(State & s, AstArguments & args) {
-    if(kind(top(s)) == TokenKind::LeftParen) {
-        switch(kind(pop(s))) {
-        case TokenKind::RightParen:
-            pop();
+    switch(kind(top(s))) {
+    case TokenKind::Star:
+        if(args_params(s, args.args)) {
+            if(is(s, TokenKind::DoubleStar)) {
+                return kwarg_param(s, args.kwargs);
+            }
+        }
+        break;
+    case TokenKind::DoubleStar:
+        return kwarg_param(s, args.kwargs);
+    case TokenKind::Name:
+        if(param_list(s, args.arguments, args.defaults)) {
+            if(expect(s, TokenKind::Comma)) {
+                if(is(s, TokenKind::Star)) {
+                    if(!args_params(s, args.args)) {
+                        return false;
+                    }
+                } else {
+                    unpop(s);
+                }
+            }
+            if(expect(s, TokenKind::Comma)) {
+                if(is(s, TokenKind::DoubleStar)) {
+                    if(!kwarg_param(s, args.kwargs)) {
+                        return false;
+                    }
+                }
+            }
             return true;
-        case TokenKind::Name:
-
         }
     }
     return false;
 }
 
-bool function_def(State & s, AstFunctionDefPtr & ast) {
-    save(s);
-    pop(s);
-    ast = std::make_shared<AstFunctionDef>();
-    if(token(top(s)) == Token::Identifier) {
-        pop();
-        if(parameters(s, ast->args) && kind(top(s)) == TokenKind::Colon) {
-            ast->name = top(s).value;
+bool parameters(State & s, AstArguments & args) {
+    StateGuard guard(s);
+    location(s, args);
+    if(expect(s, TokenKind::LeftParen)) {
+        switch(kind(top(s))) {
+        case TokenKind::RightParen:
             pop(s);
-
+            return guard.commit();
+        case TokenKind::Star:
+        case TokenKind::DoubleStar:
+        case TokenKind::Name:
+            if(!varargslist(s, args)) {
+                break;
+            }
+            if(expect(s, TokenKind::RightParen)) {
+                return guard.commit();
+            }
         }
     }
+    return false;
+}
 
-    revert(s);
+bool class_def(State & s, AstClassDefPtr & ast) {
+    return false;
+}
+
+bool function_def(State & s, AstFunctionDefPtr & ast) {
+    StateGuard guard(s);
+    location(s, ast = std::make_shared<AstFunctionDef>());
+    if(expect(s, Token::KeywordDef)) {
+        if(consume_value(s, Token::Identifier, ast->name)) {
+            if(parameters(s, ast->args)) {
+                if(expect(s, TokenKind::Colon)) {
+                    expect(s, Token::NewLine);
+                    if(suite(s, ast->body)) {
+                        return guard.commit();
+                    }
+                }
+            }
+        }
+    }
     ast.reset();
     return false;
 }
@@ -401,14 +627,49 @@ bool decorated(State & s, AstStmt & ast) {
     return false;
 }
 
-bool statement(State & s, AstStmt & ast) {
+bool print(State & s, AstPrintPtr & ast) {
+    StateGuard guard(s);
+    String identifier;
+    if(consume_value(s, Token::Identifier, identifier) && identifier == "print") {
+        ast = std::make_shared<AstPrint>();
+        if(expect(s, TokenKind::RightShift)) {
+            if(!expression(s, ast->destination)) {
+                return false;
+            }
+        }
+        if(!expression(s, ast->values)) {
+            return false;
+        }
+        return guard.commit();
+    }
+    return false;
+}
+
+bool statement_inner(State & s, AstStmt & ast) {
     switch(token(top(s))) {
     case Token::DelimAt:
-        // Decorator
         return apply<AstStmt>(s, ast, decorated);
     case Token::KeywordDef:
         // Function
-        return apply<AstFunctionDef>(s, ast, function_def);
+        return apply<AstFunctionDefPtr>(s, ast, function_def);
+    case Token::KeywordClass:
+        return apply<AstClassDefPtr>(s, ast, class_def);
+    case Token::KeywordPass:
+        location(s, ast = std::make_shared<AstPass>());
+        pop(s);
+        return true;
+    case Token::Identifier:
+        return apply<AstPrintPtr>(s, ast, print);
+    case Token::KeywordWith:
+        return apply<AstWithPtr>(s, ast, with);
+    }
+    return false;
+}
+
+bool statement(State & s, AstStmt & ast) {
+    StateGuard guard(s);
+    if(statement_inner(s, ast)) {
+        return guard.commit();
     }
     return false;
 }
@@ -416,18 +677,12 @@ bool statement(State & s, AstStmt & ast) {
 bool module(State & s, AstModulePtr & ast) {
     TokenKind t = kind(top(s));
     auto mod = std::make_shared<AstModule>();
-    while(t != TokenKind::End) {
-        switch(t) {
-        case TokenKind::NewLine:
-        case TokenKind::SemiColon:
-            t = kind(pop(s));
-            break;
-        default:
-            return push_apply<AstStmt>(s, mod->body, statement);
-        }
+    location(s, mod);
+    if(statement(s, mod->body)) {
+        ast = mod;        
+        return true;
     }
-    ast = mod;
-    return true;
+    return false;
 }
 
 bool Parser::parse(Lexer & lexer, AstModulePtr & ast) {
