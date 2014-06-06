@@ -26,8 +26,8 @@ features where seen fit.
 
 **libpypa** currently does not depend on any other libraries than the *C++11*
 standard library with the exception of the `class FileBuf` which currently
-uses system libraries, but might be changed to just use
-`fopen`/`fread`/`fclose`.
+uses system libraries, but might be changed to just use `fopen`/`fread`/
+`fclose`.
 
 ## Structure
 **libpypa** currently consists of 3 major parts:
