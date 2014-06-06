@@ -86,7 +86,7 @@ set the type id value and initialize the line and column values.
    See the License for the specific language governing permissions and
    limitations under the License.
 
-## License for src/pypa/parser/dtoa.c
+### License for src/pypa/parser/dtoa.c
   The author of this software is David M. Gay.
  
   Copyright (c) 1991, 2000, 2001 by Lucent Technologies.
