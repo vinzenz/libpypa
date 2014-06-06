@@ -1,12 +1,22 @@
 # libpypa - A Python Parser Library
 
-[TOC]
+- [Introduction](#introduction)
+ - [Motivation](#introduction-motivation)
+ - [Goal](#introduction-goal)
+- [Requirements](#requirements)
+- [Structure](#structure)
+ - [Lexer](#structure-lexer)
+ - [Parser](#structure-parser)
+ - [AST](#structure-ast)
+- [License](#license)
 
+<a name="introduction">
 ## Introduction
 **libpypa** is a Python parser implemented in pure *C++*. It neither uses any
 tools like [flex][1], [yacc][2], [bison][3] etc, nor is it using any parser
 framework like [Boost.Spirit][4]. It's implementation is pure C++ code.
 
+<a name="introduction-motivation">
 ### Motivation
 I started getting involved into the [pyston project][5] where it had an entry
 in their getting involved list for implementing a parser for Python. Never
@@ -15,10 +25,12 @@ language, I decided it might be worth a try, since most of the libraries I
 found, where basically just using the builtin Python parser or where
 implemented in Python itself.
 
+<a name="introduction-goal">
 ### Goal
 The first goal of the library is to support python 2.7 syntax, later on 3.x
 syntax might be added.
 
+<a name="requirements">
 ## Requirements
 To be able using **libpypa**, you have to have a *C++11* compiler available.
 **libpypa** was developed on top of *g++ 4.8.2* and it heavily uses *C++11*
@@ -29,6 +41,7 @@ standard library with the exception of the `class FileBuf` which currently
 uses system libraries, but might be changed to just use `fopen`/`fread`/
 `fclose`.
 
+<a name="structure">
 ## Structure
 **libpypa** currently consists of 3 major parts:
 
@@ -36,14 +49,17 @@ uses system libraries, but might be changed to just use `fopen`/`fread`/
  2. `Parser`
  3. `AST`
 
+<a name="structure-lexer">
 ### Lexer
 The `Lexer` portion of the library tokenizes the input for the `Parser` and
 distinguishes the different types of tokens for the `Parser`.
 
+<a name="structure-parser">
 ### Parser
 The `Parser` utilizes the `Lexer` to parse the input and generates a
 preliminary `AST` from the input.
 
+<a name="structure-ast">
 ### AST
 The AST contains the definition of all syntax elements in the code. The main
 parst of the definition are in `pypa/ast/ast.hh` which makes heavily use of
@@ -54,6 +70,7 @@ The AST types do not implement any methods, they are just structures with data.
 The only thing which is in there for some of the bases is the constructor, to
 set the type id value and initialize the line and column values.
 
+<a name="license">
 ## License
    Copyright 2014 Vinzenz Feenstra
 
