@@ -21,6 +21,10 @@ PYPA_AST_TYPE_DECL_DERIVED(Keyword) {
 };
 DEF_AST_TYPE_BY_ID1(Keyword);
 
+PYPA_AST_EXPR(KeywordExpr) {
+    AstKeywordPtr kw;
+};
+
 PYPA_AST_TYPE_DECL_DERIVED(Alias) {
     String name;
     String as_name;
@@ -62,10 +66,10 @@ PYPA_AST_EXPR(BoolOp) {
 
 PYPA_AST_STMT(Break) {};
 
-PYPA_AST_STMT(Call) {
+PYPA_AST_EXPR(Call) {
     AstExpr         function;
-    AstExpr         args;
-    AstExpr         kwargs;
+    AstExprList     args;
+    AstExprList     kwargs;
     AstExprList     arguments;
     AstKeywordList  keywords;
 };

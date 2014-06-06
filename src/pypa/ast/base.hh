@@ -40,11 +40,14 @@ DEF_AST_TYPE_BY_ID1(Statement);
 template<AstType Type>
 struct AstStmtT : AstT<Type, AstStatement> { using AstT<AstType::Statement>::AstT;};
 
-struct AstSliceKind : Ast {};
-typedef std::shared_ptr<AstSliceKind> AstSliceKindPtr;
+PYPA_AST_TYPE_DECL_DERIVED(SliceKind){
+    using AstT<AstType::SliceKind>::AstT;
+};
+DEF_AST_TYPE_BY_ID1(SliceKind);
 
 template<AstType Type>
 struct AstSliceT : AstT<Type, AstSliceKind> {
+    using AstT<AstType::SliceKind>::AstT;
     static_assert(
         Type == AstType::ExtSlice
      || Type == AstType::Index

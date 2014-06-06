@@ -10,4 +10,11 @@ def test(a, b, c, *args, **kwargs):
     print 0b111010110111100110100010101
     print 0726746425
     print 0o726746425
+    print "123456789"
     pass
+    pass
+    yield 1
+    a(a, b, *args, c=d, x=y, **kwargs)
+    primary[b]
+    primary[a:b]
+    primary[a:b:c]

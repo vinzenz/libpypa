@@ -25,6 +25,16 @@ struct dump_visitor {
        if(!a.kwargs.empty()) { printf("**%s, ", a.kwargs.c_str()); }
     }
 
+    void operator() (AstYieldExpr const & a) {
+        printf("Yield: ");
+        visit(a.args);
+    }
+
+    void operator() (AstYield const & a) {
+        printf("\t- ");
+        visit(a.yield); printf("\n");
+    }
+
     void operator() (AstFunctionDef const & p) {
         printf("FunctionDef: %s\n", p.name.c_str());
         printf("Decorators:  "); visit(p.decorators);

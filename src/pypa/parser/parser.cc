@@ -34,26 +34,6 @@ bool statement(State & s, AstStmtList & lst) {
     return !lst.empty();
 }
 
-bool bin_op(State & s, AstBinOpPtr & ast) {
-    return false;
-}
-
-bool unary_op(State & s, AstUnaryOpPtr & ast) {
-    return false;
-}
-
-bool bool_op(State & s, AstBinOpPtr & ast) {
-    return false;
-}
-
-bool lambda(State & s, AstLambdaPtr & ast) {
-    return false;
-}
-
-bool if_expr(State & s, AstIfExprPtr & ast) {
-    return false;
-}
-
 bool dict(State & s, AstDictPtr & ast) {
     StateGuard guard(s, ast);
     if(is(s, TokenKind::LeftBrace)) {
@@ -148,6 +128,15 @@ bool repr(State & s, AstReprPtr & ast) {
 }
 
 bool number(State &s, AstNumberPtr &ast);
+bool id(State & s, AstNamePtr & ast) {
+    StateGuard guard(s, ast);
+    location(s, create(ast));
+    if(expect(s, Token::Identifier)) {
+        ast->id = top(s).value;
+        return guard.commit();
+    }
+    return false;
+}
 
 bool yield_expr(State &s, AstYieldExprPtr &ast);
 bool atom(State & s, AstExpr & expr) {
@@ -161,7 +150,8 @@ bool atom(State & s, AstExpr & expr) {
             }
         }
     }
-    return apply<AstTuplePtr>(s, expr, tuple)
+    return apply<AstNamePtr>(s, expr, id)
+        || apply<AstTuplePtr>(s, expr, tuple)
         || apply<AstListPtr>(s, expr, list)
         || apply<AstDictPtr>(s, expr, dict)
         || apply<AstSetPtr>(s, expr, set)
@@ -169,6 +159,10 @@ bool atom(State & s, AstExpr & expr) {
         || apply<AstNumberPtr>(s, expr, number)
         || apply<AstReprPtr>(s, expr, repr)
         ;
+}
+
+bool comprehension(State & s, AstExpr & ast) {
+    return false;
 }
 
 bool compare(State &s, AstComparePtr &ast);
@@ -264,6 +258,173 @@ bool test(State & s, AstExpr & ast) {
     return expression(s, ast);
 }
 
+bool attributeref(State & s, AstExpr & expr) {
+    return false;
+}
+
+bool argument_list(State & s, AstCallPtr & ast);
+bool primary(State & s, AstExpr & expr);
+bool call(State & s, AstExpr & expr) {
+    StateGuard guard(s, expr);
+
+    AstCallPtr call;
+    location(s, create(call));
+    expr = call;
+    if(primary(s, call->function)) {
+        if(!expect(s, TokenKind::LeftParen)) {
+            return false;
+        }
+        AstExpr expr;
+        if(comprehension(s, expr)) {
+            call->arguments.push_back(expr);
+        }
+        // Not a comprehension
+        else {
+            if(!argument_list(s, call)) {
+                return false;
+            }
+        }
+        return guard.commit();
+    }
+    return false;
+}
+
+bool simple_slicing(State & s, AstSliceKindPtr & ast) {
+    StateGuard guard(s, ast);
+    return false;
+}
+
+bool extended_slicing(State & s, AstSliceKindPtr & ast) {
+    StateGuard guard(s, ast);
+    AstExtSlice extslice;
+
+    return false;
+}
+
+bool slicing(State & s, AstSliceKindPtr & ast) {
+    return simple_slicing(s, ast)
+        || extended_slicing(s, ast);
+}
+
+bool subscription(State & s, AstExpr & ast) {
+    StateGuard guard(s, ast);
+    AstSubscriptPtr subscript;
+    location(s, create(subscript));
+    ast = subscript;
+    if(expression(s, subscript->value)) {
+        if(!expect(s, TokenKind::LeftBracket)) {
+            return false;
+        }
+        if(!slicing(s, subscript->slice)) {
+            AstExtSlicePtr ext;
+            location(s, create(ext));
+            if(expression(s, ext->dims)) {
+                subscript->slice = ext;
+            }
+            else {
+                return false;
+            }
+        }
+        if(expect(s, TokenKind::RightBracket)) {
+            return guard.commit();
+        }
+    }
+    return false;
+}
+
+bool primary(State & s, AstExpr & expr) {
+    return call(s, expr)
+        || subscription(s, expr)
+        || attributeref(s, expr)
+        || atom(s, expr)
+        ;
+}
+
+// Behaves different - Returns true even without a match
+// Only on error it'll return false
+bool positional_arguments(State & s, AstExprList & ast) {
+    for(;;) {
+        StateGuard guard(s);
+        AstExpr expr;
+        if(!expression(s, expr)) {
+            break;
+        }
+        if(is(s, Token::OpAssign)) {
+            return false;
+        }
+        guard.commit();
+        ast.push_back(expr);
+        if(!is(s, TokenKind::Comma)) {
+            break;
+        }
+    }
+    return true;
+}
+
+// Behaves different - Returns true even without a match
+// Only on error it'll return false
+bool keyword_arguments(State & s, AstKeywordList & ast) {
+    while(is(s, Token::Identifier)) {
+        StateGuard guard(s);
+        AstKeywordPtr kw;
+        location(s, create(kw));
+        consume_value(s, Token::Identifier, kw->name);
+        if(!expect(s, Token::OpAssign)) {
+            break;
+        }
+        if(!expression(s, kw->value)) {
+            return false;
+        }
+        guard.commit();
+        ast.push_back(kw);
+        if(!expect(s, TokenKind::Comma)) {
+            break;
+        }
+    }
+    return true;
+}
+
+// Behaves different - Returns true even without a match
+// Only on error it'll return false
+bool args_arguments(State & s, AstExprList & ast) {
+    while(expect(s, TokenKind::Star)) {
+        AstExpr expr;
+        if(!expression(s, expr)) {
+            return false;
+        }
+        ast.push_back(expr);
+        if(!expect(s, TokenKind::Comma)) {
+            break;
+        }
+    }
+    return true;
+}
+
+// Behaves different - Returns true even without a match
+// Only on error it'll return false
+bool kwargs_arguments(State & s, AstExprList & ast) {
+    while(expect(s, TokenKind::DoubleStar)) {
+        AstExpr expr;
+        if(!expression(s, expr)) {
+            return false;
+        }
+        ast.push_back(expr);
+        if(!expect(s, TokenKind::Comma)) {
+            break;
+        }
+    }
+    return true;
+}
+
+bool argument_list(State & s, AstCallPtr & ast) {
+    StateGuard guard(s);
+    // positional -> [ [*args], [keywords], **kwargs]
+    return positional_arguments(s, ast->arguments)
+        && args_arguments(s, ast->args)
+        && keyword_arguments(s, ast->keywords)
+        && kwargs_arguments(s, ast->kwargs)
+        && guard.commit();
+}
 
 bool test_list1(State & s, AstExprList & ast) {
     AstExpr expr;
@@ -568,7 +729,7 @@ bool number(State & s, AstNumberPtr & ast) {
 }
 
 bool expression(State & s, AstExpr & ast) {
-    return atom(s, ast);
+    return primary(s, ast);
 }
 
 bool compare(State & s, AstComparePtr & ast) {
@@ -757,8 +918,23 @@ bool print(State & s, AstPrintPtr & ast) {
     return false;
 }
 
+bool expression_statement(State & s, AstStmt & ast) {
+    StateGuard guard(s, ast);
+    AstExpressionStatementPtr expr;
+    location(s ,create(expr));
+    ast = expr;
+    if(expression(s, expr->expr)) {
+        if(expect(s, TokenKind::SemiColon) || expect(s, TokenKind::NewLine)) {
+            return guard.commit();
+        }
+    }
+    return false;
+}
+
 bool statement_inner(State & s, AstStmt & ast) {
     switch(token(top(s))) {
+    case Token::Dedent:
+        return false;
     case Token::DelimAt:
         return apply<AstStmt>(s, ast, decorated);
     case Token::KeywordDef:
@@ -769,13 +945,17 @@ bool statement_inner(State & s, AstStmt & ast) {
     case Token::KeywordPass:
         location(s, create<AstPass>(ast));
         pop(s);
-        return true;
-    case Token::Identifier:
-        return apply<AstPrintPtr>(s, ast, print);
+        return true;        
     case Token::KeywordWith:
         return apply<AstWithPtr>(s, ast, with);
+    case Token::Identifier:
+        if(top(s).value == "print") {
+            return apply<AstPrintPtr>(s, ast, print);
+        }
+        break;
     }
-    return false;
+    return flow_statement(s, ast)
+         || expression_statement(s, ast);
 }
 
 bool statement(State & s, AstStmt & ast) {
