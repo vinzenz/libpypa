@@ -6,15 +6,6 @@
 
 namespace pypa {
 
-
-PYPA_AST_TYPE_DECL_DERIVED(Arguments) {
-    AstExprList arguments;
-    AstExprList defaults;
-    String kwargs;
-    String args;
-};
-DEF_AST_TYPE_BY_ID1(Arguments);
-
 PYPA_AST_TYPE_DECL_DERIVED(Keyword) {
     String name;
     AstExpr value;
@@ -41,13 +32,21 @@ PYPA_AST_STMT(Assign) {
     AstExpr     value;
 };
 
+PYPA_AST_TYPE_DECL_DERIVED(Arguments) {
+    AstExprList arguments;
+    AstExprList defaults;
+    String kwargs;
+    String args;
+};
+DEF_AST_TYPE_BY_ID1(Arguments);
+
 PYPA_AST_STMT(AugAssign) {
     AstExpr         value;
     AstExpr         target;
     AstBinOpType    op;
 };
 
-PYPA_AST_STMT(Attribute) {
+PYPA_AST_EXPR(Attribute) {
     AstExpr     value;
     AstContext  context;
     String      attribute;
@@ -89,12 +88,12 @@ PYPA_AST_EXPR(Compare) {
     AstExpr                     left;
 };
 
-PYPA_AST_TYPE_DECL_DERIVED_ALIAS(Comprehension, AstComprPtr, AstComprList) {
+PYPA_AST_EXPR(Comprehension) {
     AstExpr target;
     AstExpr iter;
-    AstExprList ifs;
 };
-DEF_AST_TYPE_BY_ID1(Comprehension);
+typedef AstComprehensionPtr      AstComprPtr;
+typedef std::vector<AstComprPtr> AstComprList;
 
 PYPA_AST_EXPR(Decorator) {
     AstCall call;
@@ -140,6 +139,9 @@ PYPA_AST_STMT(Except) {
 };
 typedef std::vector<AstExceptPtr> AstExceptList;
 
+PYPA_AST_EXPR(Expressions) {
+    AstExprList items;
+};
 
 PYPA_AST_STMT(ExpressionStatement) {
     AstExpr expr;
@@ -158,8 +160,9 @@ PYPA_AST_STMT(For) {
 };
 
 PYPA_AST_EXPR(ForExpr) {
-    AstExprList items;
-    AstExprList generators;
+    AstExpr items;
+    AstExpr generators;
+    AstExpr iter;
 };
 
 PYPA_AST_STMT(FunctionDef) {
@@ -167,6 +170,11 @@ PYPA_AST_STMT(FunctionDef) {
    AstArguments args;
    AstSuitePtr  body;
    AstExprList  decorators;
+};
+
+PYPA_AST_EXPR(Generator) {
+    AstExpr expression;
+    AstExpr for_expr;
 };
 
 PYPA_AST_STMT(Global) {
