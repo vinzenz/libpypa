@@ -33,18 +33,27 @@ bool attributeref(State &s, AstExpr &expr);
 bool subscription(State &s, AstExpr &expr);
 bool primary(State &s, AstExpr &ast);
 
-bool expression(State & s, AstExprList & lst) {
+
+
+bool expression(State & s, AstExprList & lst, bool & last_token_comma) {
     for(;;) {
         AstExpr one;
         if(!expression(s, one)) {
+            last_token_comma = !lst.empty();
             break;
         }
         lst.push_back(one);
         if(!expect(s, TokenKind::Comma)) {
+            last_token_comma = false;
             break;
         }
     }
     return !lst.empty();
+}
+
+bool expression(State & s, AstExprList & lst) {
+    bool ignored = false;
+    return expression(s, lst, ignored);
 }
 
 bool comp_if(State &s, AstExpr &ast) {
@@ -98,19 +107,20 @@ bool generator_expression(State & s, AstExpr & ast) {
 
 bool statement(State & s, AstStmtList & lst) {
     for(;;) {
-        expect(s, TokenKind::NewLine) || expect(s, TokenKind::SemiColon);
-        if(!push_apply<AstStmt>(s, lst, statement)) {
+        while(expect(s, TokenKind::NewLine) || expect(s, TokenKind::SemiColon));
+        if(end(s) || !push_apply<AstStmt>(s, lst, statement)) {
             break;
         }
     }
     return !lst.empty();
 }
 
-bool dict(State & s, AstDictPtr & ast) {
+bool dict(State & s, AstExpr & ast) {
     StateGuard guard(s, ast);
-    if(is(s, TokenKind::LeftBrace)) {
-        location(s, create(ast));
-        pop(s);
+    AstDictPtr dict;
+    location(s, create(dict));
+    ast = dict;
+    if(expect(s, TokenKind::LeftBrace)) {
         for(;;) {
             AstExpr key, value;
 
@@ -123,8 +133,8 @@ bool dict(State & s, AstDictPtr & ast) {
             if(!expression(s, value))
                 return false;
 
-            ast->keys.push_back(key);
-            ast->values.push_back(value);
+            dict->keys.push_back(key);
+            dict->values.push_back(value);
 
             if(!expect(s, TokenKind::Comma))
                 break;
@@ -137,9 +147,8 @@ bool dict(State & s, AstDictPtr & ast) {
 template< typename PtrT >
 bool list_like(TokenKind open, TokenKind close, State & s, PtrT & ast) {
     StateGuard guard(s, ast);
-    if(is(s, open)) {
-        location(s, create(ast));
-        pop(s);
+    location(s, create(ast));
+    if(expect(s, open)) {
         AstExpr expr;
         while(expression(s, expr)) {
             ast->elements.push_back(expr);
@@ -152,8 +161,13 @@ bool list_like(TokenKind open, TokenKind close, State & s, PtrT & ast) {
     return false;
 }
 
-bool set(State & s, AstSetPtr & ast) {
-    return list_like(TokenKind::LeftBrace, TokenKind::RightBrace, s, ast);
+bool set(State & s, AstExpr & ast) {
+    AstSetPtr expr;
+    if(list_like(TokenKind::LeftBrace, TokenKind::RightBrace, s, expr)) {
+        ast = expr;
+        return true;
+    }
+    return false;
 }
 
 bool dict_or_set(State & s, AstExpr & expr) {
@@ -161,16 +175,17 @@ bool dict_or_set(State & s, AstExpr & expr) {
     if(expect(s, TokenKind::LeftBrace)) {
         if(expect(s, TokenKind::RightBrace)) {
             revert(s);
-            return apply<AstDictPtr>(s, expr, dict);
+            return dict(s, expr);
         }
         AstExpr expr;
         if(expression(s, expr)) {
             if(expect(s, TokenKind::Comma)) {
                 revert(s);
-                return apply<AstSetPtr>(s, expr, set);
+                return set(s, expr);
             }
             if(expect(s, TokenKind::Colon)) {
-                return apply<AstDictPtr>(s, expr, dict);
+                revert(s);
+                return dict(s, expr);
             }
         }
     }
@@ -178,16 +193,20 @@ bool dict_or_set(State & s, AstExpr & expr) {
     return false;
 }
 
-bool list(State & s, AstListPtr & ast) {
-    return list_like(TokenKind::LeftBracket, TokenKind::RightBracket, s, ast);
+bool list(State & s, AstExpr & ast) {
+    AstListPtr expr;
+    if(list_like(TokenKind::LeftBracket, TokenKind::RightBracket, s, expr)) {
+        ast = expr;
+        return true;
+    }
+    return false;
 }
 
 bool tuple(State & s, AstExpr & ast) {
     StateGuard guard(s, ast);
     AstTuplePtr t;
-    location(s, create(t));
-    ast = t;
     bool result = list_like(TokenKind::LeftParen, TokenKind::RightParen, s, t);
+    ast = t;
     return (result && t->elements.size() > 1 && guard.commit());
 }
 
@@ -199,16 +218,28 @@ bool str(State & s, AstStrPtr & ast) {
     return false;
 }
 
-bool repr(State & s, AstReprPtr & ast) {
+bool repr(State & s, AstExpr & ast) {
+    StateGuard guard(s, ast);
+    AstReprPtr repr;
+    location(s, create(repr));
+    ast = repr;
     if(expect(s, Token::BackQuote)) {
+        if(expression(s, repr->value) && !repr->value.empty()) {
+            if(expect(s, Token::BackQuote)) {
+                return guard.commit();
+            }
+        }
     }
+    return false;
 }
 
-bool id(State & s, AstNamePtr & ast) {
+bool id(State & s, AstExpr & ast) {
     StateGuard guard(s, ast);
-    location(s, create(ast));
-    if(expect(s, Token::Identifier)) {
-        ast->id = top(s).value;
+    AstNamePtr name;
+    location(s, create(name));
+    ast = name;
+    name->id = top(s).value;
+    if(expect(s, Token::Identifier)) {        
         return guard.commit();
     }
     return false;
@@ -261,7 +292,7 @@ bool list_comprehension(State & s, AstExpr & ast) {
 
 bool list_display(State & s, AstExpr & ast) {
     return list_comprehension(s, ast)
-         || apply<AstListPtr>(s, ast, list);
+         || list(s, ast);
 }
 
 // || apply<AstDictPtr>(s, expr, dict)
@@ -271,7 +302,7 @@ bool list_display(State & s, AstExpr & ast) {
 
 bool parenth_form(State & s, AstExpr & ast) {
     StateGuard guard(s, ast);
-    if(expect(s, TokenKind::LeftParen)) {
+    if(is(s, TokenKind::LeftParen)) {
         if(tuple(s, ast) || expression(s, ast)) {
             return guard.commit();
         }
@@ -280,6 +311,24 @@ bool parenth_form(State & s, AstExpr & ast) {
 }
 
 bool enclosure(State & s, AstExpr & expr) {
+    if(parenth_form(s, expr)) {
+        return true;
+    }
+    if(list_display(s, expr)) {
+        return true;
+    }
+    if(generator_expression(s, expr)) {
+        return true;
+    }
+    if(dict(s, expr)) {
+        return true;
+    }
+    if(set(s, expr)) {
+        return true;
+    }
+    if(repr(s, expr)) {
+        return true;
+    }
     if(is(s, TokenKind::LeftParen))
     {
         StateGuard guard(s, expr);
@@ -290,9 +339,7 @@ bool enclosure(State & s, AstExpr & expr) {
             }
         }
     }
-    else if(dict_or_set(s, expr)) {
-        return true;
-    }
+    return false;
 }
 
 bool enclosed(State & s, AstExpr & ast, TokenKind left, TokenKind right, bool (*fun)(State & s, AstExpr &)) {
@@ -311,7 +358,7 @@ bool target(State & s, AstExpr & ast) {
         || enclosed(s, ast, TokenKind::LeftBracket, TokenKind::RightBracket, target_list)
         || attributeref(s, ast)
         || subscription(s, ast)
-        || apply<AstNamePtr>(s, ast, id)
+        || id(s, ast)
         ;
 }
 
@@ -337,7 +384,7 @@ bool target_list(State & s, AstExpr & ast) {
 }
 
 bool atom(State & s, AstExpr & expr) {
-    return apply<AstNamePtr>(s, expr, id)
+    return id(s, expr)
         || literal(s, expr)
         || enclosure(s, expr)
         ;
@@ -380,7 +427,7 @@ bool and_test(State & s, AstExpr & ast) {
         return true;
     }
     StateGuard guard(s, ast);
-    if(and_test(s, ast)) {
+    if(cls(top(s)) == TokenClass::Default && and_test(s, ast)) {
         AstBoolOpPtr op;
         location(s, create(op));
         ast = op;
@@ -403,7 +450,7 @@ bool or_test(State & s, AstExpr & ast) {
         return true;
     }
     StateGuard guard(s, ast);
-    if(or_test(s, ast)) {
+    if(cls(top(s)) == TokenClass::Default && or_test(s, ast)) {
         AstBoolOpPtr op;
         location(s, create(op));
         ast = op;
@@ -451,10 +498,12 @@ bool attributeref(State & s, AstExpr & expr) {
     AstAttributePtr attr;
     location(s, create(attr));
     expr = attr;
-    if(primary(s, attr->value)) {
+    if((token(top(s)) == Token::Identifier && atom(s, attr->value)) || primary(s, attr->value)) {
         if(expect(s, TokenKind::Dot)) {
-            return consume_value(s, Token::Identifier, attr->attribute)
-                && guard.commit();
+            if(consume_value(s, Token::Identifier, attr->attribute))
+            {
+                return guard.commit();
+            }
         }
     }
     return false;
@@ -466,7 +515,7 @@ bool call(State & s, AstExpr & expr) {
     AstCallPtr callptr;
     location(s, create(callptr));
     expr = callptr;
-    if(primary(s, callptr->function)) {
+    if((token(top(s)) == Token::Identifier && atom(s, callptr->function)) || primary(s,callptr->function)) {
         if(!expect(s, TokenKind::LeftParen)) {
             return false;
         }
@@ -480,20 +529,48 @@ bool call(State & s, AstExpr & expr) {
                 return false;
             }
         }
-        return guard.commit();
+        return expect(s, TokenKind::RightParen)
+            && guard.commit();
     }
     return false;
 }
 
 bool simple_slicing(State & s, AstSliceKindPtr & ast) {
     StateGuard guard(s, ast);
-    return false;
+    AstSlicePtr slice;
+    location(s, create(slice));
+    expression(s, slice->lower);
+    if(!expect(s, TokenKind::Colon)) {
+        return false;
+    }
+    expression(s, slice->upper);
+    if(expect(s, TokenKind::Colon)) {
+        return false;
+    }
+    return is(s, TokenKind::RightBracket)
+        && guard.commit();
+}
+
+bool slice_item(State & s, AstSlicePtr & slice) {
+    StateGuard guard(s, slice);
+    location(s, create(slice));
+    expression(s, slice->lower);
+    if(!expect(s, TokenKind::Colon)) {
+        return false;
+    }
+    expression(s, slice->upper);
+    if(expect(s, TokenKind::Colon)) {
+        expression(s, slice->step);
+    }
+    return (is(s, TokenKind::Comma)
+        || is(s, TokenKind::RightBracket))
+        && guard.commit();
 }
 
 bool extended_slicing(State & s, AstSliceKindPtr & ast) {
     StateGuard guard(s, ast);
-    AstExtSlice extslice;
-
+    AstExtSlicePtr extslice;
+    location(s, create(extslice));
     return false;
 }
 
@@ -507,33 +584,38 @@ bool subscription(State & s, AstExpr & ast) {
     AstSubscriptPtr subscript;
     location(s, create(subscript));
     ast = subscript;
-    if(primary(s, subscript->value)) {
+    if((token(top(s)) == Token::Identifier && atom(s, subscript->value)) || primary(s, subscript->value)) {
+        AstIndexPtr idx;
+        location(s, create(idx));
         if(!expect(s, TokenKind::LeftBracket)) {
             return false;
         }
-        if(!slicing(s, subscript->slice)) {
-            AstExtSlicePtr ext;
-            location(s, create(ext));
-            if(expression(s, ext->dims)) {
-                subscript->slice = ext;
-            }
-            else {
-                return false;
-            }
-        }
-        if(expect(s, TokenKind::RightBracket)) {
+        if(slicing(s, subscript->slice)) {
             return guard.commit();
         }
+        subscript->slice = idx;
+        if(!expression(s, idx->value)) {
+            return false;
+        }
+        if(!expect(s, TokenKind::RightBracket)) {
+            return false;
+        }
+        return guard.commit();
     }
     return false;
 }
 
 bool primary(State & s, AstExpr & ast) {
-    return atom(s, ast)
-        || attributeref(s, ast)
-        || subscription(s, ast)
-        || call(s, ast)
-        ;
+    if(end(s)) {
+        return false;
+    }
+    if(token(top(s)) != Token::Identifier) {
+        return atom(s, ast);
+    }
+    if(attributeref(s, ast) || call(s, ast) || subscription(s, ast) || atom(s, ast)) {
+        return true;
+    }
+    return false;
 }
 
 // Behaves different - Returns true even without a match
@@ -550,7 +632,7 @@ bool positional_arguments(State & s, AstExprList & ast) {
         }
         guard.commit();
         ast.push_back(expr);
-        if(!is(s, TokenKind::Comma)) {
+        if(!expect(s, TokenKind::Comma)) {
             break;
         }
     }
@@ -615,11 +697,19 @@ bool kwargs_arguments(State & s, AstExprList & ast) {
 bool argument_list(State & s, AstCallPtr & ast) {
     StateGuard guard(s);
     // positional -> [ [*args], [keywords], **kwargs]
-    return positional_arguments(s, ast->arguments)
-        && args_arguments(s, ast->args)
-        && keyword_arguments(s, ast->keywords)
-        && kwargs_arguments(s, ast->kwargs)
-        && guard.commit();
+    if(!positional_arguments(s, ast->arguments)) {
+        return false;
+    }
+    if(!args_arguments(s, ast->args)) {
+        return false;
+    }
+    if(!keyword_arguments(s, ast->keywords)) {
+        return false;
+    }
+    if(!kwargs_arguments(s, ast->kwargs)) {
+        return false;
+    }
+    return guard.commit();
 }
 
 bool raise(State & s, AstRaisePtr & ast) {    
@@ -985,7 +1075,8 @@ bool m_expr(State & s, AstExpr & ast) {
     AstBinOpPtr bin;
     location(s, create(bin));
     ast = bin;
-    if(m_expr(s, bin->left)) {
+
+    if(cls(top(s)) == TokenClass::Default && m_expr(s, bin->left)) {
         if(expect(s, TokenKind::Star)) {
             bin->op = AstBinOpType::Mult;
         }
@@ -1015,7 +1106,7 @@ bool a_expr(State & s, AstExpr & ast) {
     AstBinOpPtr bin;
     location(s, create(bin));
     ast = bin;
-    if(a_expr(s, bin->left)) {
+    if(cls(top(s)) == TokenClass::Default && a_expr(s, bin->left)) {
         if(expect(s, TokenKind::Plus)) {
             bin->op = AstBinOpType::Add;
         }
@@ -1039,7 +1130,7 @@ bool shift_expr(State & s, AstExpr & ast) {
     AstBinOpPtr bin;
     location(s, create(bin));
     ast = bin;
-    if(shift_expr(s, bin->left)) {
+    if(cls(top(s)) == TokenClass::Default && shift_expr(s, bin->left)) {
         if(expect(s, TokenKind::RightShift)) {
             bin->op = AstBinOpType::RightShift;
         }
@@ -1063,7 +1154,7 @@ bool and_expr(State & s, AstExpr & ast) {
     AstBinOpPtr bin;
     location(s, create(bin));
     ast = bin;
-    if(and_expr(s, bin->left)) {
+    if(cls(top(s)) == TokenClass::Default && and_expr(s, bin->left)) {
         if(expect(s, TokenKind::BinAnd)) {
             bin->op = AstBinOpType::BitAnd;
             return shift_expr(s, bin->right)
@@ -1081,7 +1172,7 @@ bool xor_expr(State & s, AstExpr & ast) {
     AstBinOpPtr bin;
     location(s, create(bin));
     ast = bin;
-    if(xor_expr(s, bin->left)) {
+    if(cls(top(s)) == TokenClass::Default && xor_expr(s, bin->left)) {
         if(expect(s, TokenKind::CircumFlex)) {
             bin->op = AstBinOpType::BitXor;
             return and_expr(s, bin->right)
@@ -1099,7 +1190,7 @@ bool or_expr(State & s, AstExpr & ast) {
     AstBinOpPtr bin;
     location(s, create(bin));
     ast = bin;
-    if(or_expr(s, bin->left)) {
+    if(cls(top(s)) == TokenClass::Default && or_expr(s, bin->left)) {
         if(expect(s, TokenKind::BinOr   )) {
             bin->op = AstBinOpType::BitOr;
             return xor_expr(s, bin->right)
@@ -1294,9 +1385,11 @@ bool print(State & s, AstPrintPtr & ast) {
                 return false;
             }
         }
-        if(!expression(s, ast->values)) {
+        if(!expression(s, ast->values, ast->newline)) {
             return false;
         }
+        // invert token last comma
+        ast->newline = !ast->newline;
         return guard.commit();
     }
     return false;

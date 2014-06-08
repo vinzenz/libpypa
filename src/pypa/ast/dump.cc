@@ -68,10 +68,41 @@ struct dump_visitor {
         printf("]");
     }
 
+    void operator() (AstExpressionStatement const & p) {
+        visit(p.expr);
+    }
+
+    void operator() (AstExpressions const & p) {
+        visit(p.items);
+    }
+
+    void operator() (AstKeyword const & p) {
+        printf("KWName: %s KWValue: ", p.name.c_str());
+        visit(p.value);
+    }
+
+    void operator() (AstKeywordExpr const & p) {
+        visit(p.kw);
+    }
+
+    void operator() (AstCall const & p) {
+        printf("Call:\n\tFunction:");
+        visit(p.function);
+        printf("\n\tPositional Arguments:");
+        visit(p.arguments);
+        printf("\n\t*args:");
+        visit(p.args);
+        printf("\n\tKeyword Arguments:");
+        visit(p.keywords);
+        printf("\n\t**kwargs:");
+        visit(p.kwargs);
+        printf("\n");
+    }
+
     void operator() (AstTuple const & p) {
         printf("Tuple (");
         for(std::size_t i = 0; i < p.elements.size(); ++i) {
-            if(i) printf(", "); visit(p.elements[i]);
+            visit(p.elements[i]); printf(", ");
         }
         printf(")");
     }
@@ -90,7 +121,7 @@ struct dump_visitor {
     }
 
     void operator() (AstStr const & p) {
-        printf("%s", p.value.c_str());
+        printf("[STR] (%s)", p.value.c_str());
     }
 
     void operator() (AstStatement const & s) {
@@ -107,6 +138,18 @@ struct dump_visitor {
         printf("\n\tOptional:");
         visit(p.optional);
         printf("\n");
+    }
+
+    void operator() (AstSubscript const & p) {
+        printf("\n\tSubscript: Value: ");
+        visit(p.value);
+        printf(" - Slice: ");
+        visit(p.slice);
+        printf("\n");
+    }
+
+    void operator() (AstIndex const & p) {
+        printf("Index:"); visit(p.value);
     }
 
     void operator() (AstWith const & p) {

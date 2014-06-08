@@ -47,12 +47,18 @@ namespace {
         }
     }
 
+    void pop_savepoint(State & s) {
+        if(!s.savepoints.empty()) {
+            s.savepoints.pop();
+        }
+    }
+
     struct StateGuard {
         StateGuard(State & s) : reset_(), s_(&s) { save(s); }
         template< typename T >
         StateGuard(State & s, std::shared_ptr<T> & r) : reset_([&r](){r.reset();}), s_(&s) { save(s); }
         ~StateGuard() { if(s_) revert(*s_); if(reset_) reset_(); }
-        bool commit() { s_ = 0; reset_ = {}; return true; }
+        bool commit() { if(s_) pop_savepoint(*s_); s_ = 0; reset_ = {}; return true; }
     private:
         std::function<void()> reset_;
         State * s_;
@@ -120,6 +126,10 @@ namespace {
 
     bool is(State & s, TokenClass c) {
         return is(top(s), c);
+    }
+
+    bool end(State & s) {
+        return is(s, Token::End);
     }
 
     template< typename T >

@@ -15,6 +15,6 @@ def test(a, b, c, *args, **kwargs):
     pass
     yield 1
     a(a, b, *args, c=d, x=y, **kwargs)
-    primary[b]
-    primary[a:b]
-    primary[a:b:c]
+    subscript[idx]
+    slicesimpl[slow:supper]
+    sliceext[elow:eupper:estep]

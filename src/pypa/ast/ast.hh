@@ -194,7 +194,7 @@ PYPA_AST_EXPR(IfExpr) {
 };
 
 PYPA_AST_TYPE_DECL_SLICE_KIND(Index) {
-    AstExpr value;
+    AstExprList value;
 };
 DEF_AST_TYPE_BY_ID1(Index);
 
@@ -255,7 +255,7 @@ PYPA_AST_STMT(Print) {
 
 
 PYPA_AST_EXPR(Repr) {
-    AstExpr value;
+    AstExprList value;
 };
 
 PYPA_AST_STMT(Raise) {
