@@ -26,6 +26,7 @@ namespace pypa {
         TokenDef(Token::OpShiftRight, TokenString(">>"), TokenKind::RightShift, TokenClass::Operator),
         TokenDef(Token::OpEqual, TokenString("=="), TokenKind::EqualEqual, TokenClass::Operator),
         TokenDef(Token::OpNotEqual, TokenString("!="), TokenKind::NotEqual, TokenClass::Operator),
+        TokenDef(Token::OpNotEqual, TokenString("<>"), TokenKind::NotEqual, TokenClass::Operator),
         TokenDef(Token::OpMoreEqual, TokenString(">="), TokenKind::GreaterEqual, TokenClass::Operator),
         TokenDef(Token::OpLessEqual, TokenString("<="), TokenKind::LessEqual, TokenClass::Operator),
         TokenDef(Token::OpAssign, TokenString("="), TokenKind::Equal, TokenClass::Operator),

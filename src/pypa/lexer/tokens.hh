@@ -38,6 +38,7 @@ namespace pypa {
         KeywordElIf,
         KeywordElse,
         KeywordExcept,
+        KeywordExec,
         KeywordFalse,
         KeywordFinally,
         KeywordFor,

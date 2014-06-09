@@ -18,6 +18,7 @@ namespace pypa {
         TokenDef(Token::KeywordElIf, TokenString("elif"), TokenKind::Name, TokenClass::Keyword),
         TokenDef(Token::KeywordElse, TokenString("else"), TokenKind::Name, TokenClass::Keyword),
         TokenDef(Token::KeywordExcept, TokenString("except"), TokenKind::Name, TokenClass::Keyword),
+        TokenDef(Token::KeywordExec, TokenString("exec"), TokenKind::Name, TokenClass::Keyword),
         TokenDef(Token::KeywordFinally, TokenString("finally"), TokenKind::Name, TokenClass::Keyword),
         TokenDef(Token::KeywordFor, TokenString("for"), TokenKind::Name, TokenClass::Keyword),
         TokenDef(Token::KeywordFrom, TokenString("from"), TokenKind::Name, TokenClass::Keyword),
