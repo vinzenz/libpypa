@@ -6,21 +6,25 @@
 
 namespace pypa {
 
-PYPA_AST_TYPE_DECL_DERIVED(Keyword) {
-    String name;
+PYPA_AST_EXPR(Expressions) {
+    AstExprList items;
+};
+
+PYPA_AST_EXPR(Name) {
+    AstContext  context;
+    String      id;
+};
+
+PYPA_AST_EXPR(Keyword) {
+    AstExpr name;
     AstExpr value;
 };
-DEF_AST_TYPE_BY_ID1(Keyword);
 
-PYPA_AST_EXPR(KeywordExpr) {
-    AstKeywordPtr kw;
-};
 
-PYPA_AST_TYPE_DECL_DERIVED(Alias) {
+PYPA_AST_EXPR(Alias) {
     String name;
     String as_name;
 };
-DEF_AST_TYPE_BY_ID1(Alias);
 
 PYPA_AST_STMT(Assert) {
     AstExpr expression;
@@ -28,8 +32,8 @@ PYPA_AST_STMT(Assert) {
 };
 
 PYPA_AST_STMT(Assign) {
-    AstExprList targets;
-    AstExpr     value;
+    AstExpr targets;
+    AstExpressions value; // since this can be chained tgt = value = value...
 };
 
 PYPA_AST_TYPE_DECL_DERIVED(Arguments) {
@@ -66,26 +70,25 @@ PYPA_AST_EXPR(BoolOp) {
 PYPA_AST_STMT(Break) {};
 
 PYPA_AST_EXPR(Call) {
-    AstExpr         function;
-    AstExprList     args;
-    AstExprList     kwargs;
-    AstExprList     arguments;
-    AstKeywordList  keywords;
+    AstExpr      function;
+    AstExprList  args;
+    AstExprList  kwargs;
+    AstExprList  arguments;
+    AstExprList  keywords;
 };
 
 PYPA_AST_STMT(ClassDef) {
-    AstExprList bases;
-    AstExprList decorators;
-    AstSuitePtr body;
-    String      name;
+    AstExpr name;
+    AstExpr bases;
+    AstStmt body;
 };
 
 PYPA_AST_STMT(Continue) {};
 
 PYPA_AST_EXPR(Compare) {
-    std::vector<AstCompareOpType> ops;
-    AstExprList                 comperators;
-    AstExpr                     left;
+    AstExpr left;
+    AstCompareOpType op;
+    AstExpr right;
 };
 
 PYPA_AST_EXPR(Comprehension) {
@@ -96,20 +99,21 @@ typedef AstComprehensionPtr      AstComprPtr;
 typedef std::vector<AstComprPtr> AstComprList;
 
 PYPA_AST_EXPR(Decorator) {
-    AstCall call;
+    AstExpr      name;
+    AstArguments arguments;
 };
 
 PYPA_AST_EXPR(Decorators) {
-    std::vector<AstDecoratorPtr> decorators;
+    AstExprList decorators;
 };
 
-PYPA_AST_EXPR(Decorated) {
-    AstDecorators decorators;
-    AstStmt       cls_or_fun_def;
+PYPA_AST_STMT(Decorated) {
+    AstExpr decorators;
+    AstStmt cls_or_fun_def;
 };
 
 PYPA_AST_STMT(Delete) {
-    AstExprList targets;
+    AstExpr targets;
 };
 
 PYPA_AST_EXPR(Dict) {
@@ -118,9 +122,9 @@ PYPA_AST_EXPR(Dict) {
 };
 
 PYPA_AST_EXPR(DictComp) {
-    AstExpr         key;
-    AstExpr         value;
-    AstComprList    generators;
+    AstExpr key;
+    AstExpr value;
+    AstExpr generators;
 };
 
 PYPA_AST_TYPE_DECL_SLICE_KIND(Ellipsis) {};
@@ -137,16 +141,11 @@ PYPA_AST_STMT(Exec) {
     AstExpr locals;
 };
 
-PYPA_AST_STMT(Except) {
-    AstStmt body;
+PYPA_AST_EXPR(Except) {
     AstExpr type;
     AstExpr name;
 };
 typedef std::vector<AstExceptPtr> AstExceptList;
-
-PYPA_AST_EXPR(Expressions) {
-    AstExprList items;
-};
 
 PYPA_AST_STMT(ExpressionStatement) {
     AstExpr expr;
@@ -171,10 +170,9 @@ PYPA_AST_EXPR(ForExpr) {
 };
 
 PYPA_AST_STMT(FunctionDef) {
-   String       name;
+   AstExpr   name;
    AstArguments args;
    AstStmt      body;
-   AstExprList  decorators;
 };
 
 PYPA_AST_EXPR(Generator) {
@@ -205,13 +203,13 @@ PYPA_AST_TYPE_DECL_SLICE_KIND(Index) {
 DEF_AST_TYPE_BY_ID1(Index);
 
 PYPA_AST_STMT(Import) {
-    AstAliasList names;
+    AstExpr names;
 };
 
 PYPA_AST_STMT(ImportFrom) {
-    AstExpr  module;
-    AstExpr  names;
-    int      level;
+    AstExpr         module;
+    AstExpr         names;
+    int             level;
 };
 
 PYPA_AST_EXPR(Lambda) {
@@ -225,13 +223,8 @@ PYPA_AST_EXPR(List) {
 };
 
 PYPA_AST_EXPR(ListComp) {
-    AstComprList generators;
-    AstExpr      element;
-};
-
-PYPA_AST_EXPR(Name) {
-    AstContext  context;
-    String      id;
+    AstExpr generators;
+    AstExpr element;
 };
 
 PYPA_AST_EXPR(Number) {
@@ -261,7 +254,7 @@ PYPA_AST_STMT(Print) {
 
 
 PYPA_AST_EXPR(Repr) {
-    AstExprList value;
+    AstExpr value;
 };
 
 PYPA_AST_STMT(Raise) {
@@ -279,8 +272,8 @@ PYPA_AST_EXPR(Set) {
 };
 
 PYPA_AST_EXPR(SetComp) {
-    AstExpr      element;
-    AstComprList generators;
+    AstExpr element;
+    AstExpr generators;
 };
 
 PYPA_AST_TYPE_DECL_SLICE_KIND(Slice) {
@@ -341,11 +334,11 @@ PYPA_AST_STMT(With) {
 
 
 PYPA_AST_EXPR(YieldExpr) {
-    AstExprList args;
+    AstExpr args;
 };
 
 PYPA_AST_STMT(Yield) {
-    AstYieldExprPtr yield;
+    AstExpr yield;
 };
 
 }

@@ -7,7 +7,7 @@ namespace pypa {
 
     bool and_expr(State & s, AstExpr & ast);
     bool and_test(State & s, AstExpr & ast);
-    bool arglist(State & s, AstExpr & ast);
+    bool arglist(State & s, AstArguments & ast);
     bool argument(State & s, AstExpr & ast);
     bool arith_expr(State & s, AstExpr & ast);
     bool assert_stmt(State & s, AstStmt & ast);
@@ -18,7 +18,7 @@ namespace pypa {
     bool comp_for(State & s, AstExpr & ast);
     bool comp_if(State & s, AstExpr & ast);
     bool comp_iter(State & s, AstExpr & ast);
-    bool comp_op(State & s, AstExpr & ast);
+    bool comp_op(State & s, AstCompareOpType & op);
     bool comparison(State & s, AstExpr & ast);
     bool compound_stmt(State & s, AstStmt & ast);
     bool continue_stmt(State & s, AstStmt & ast);
@@ -45,7 +45,7 @@ namespace pypa {
     bool funcdef(State & s, AstStmt & ast);
     bool global_stmt(State & s, AstStmt & ast);
     bool if_stmt(State & s, AstStmt & ast);
-    bool import_as_name(State & s, AstAliasPtr & ast);
+    bool import_as_name(State & s, AstExpr & ast);
     bool import_as_names(State & s, AstExpr & ast);
     bool import_from(State & s, AstStmt & ast);
     bool import_name(State & s, AstStmt & ast);
@@ -59,7 +59,7 @@ namespace pypa {
     bool old_lambdef(State & s, AstExpr & ast);
     bool old_test(State & s, AstExpr & ast);
     bool or_test(State & s, AstExpr & ast);
-    bool parameters(State & s, AstExpr & ast);
+    bool parameters(State & s, AstArguments & ast);
     bool pass_stmt(State & s, AstStmt & ast);
     bool power(State & s, AstExpr & ast);
     bool print_stmt(State & s, AstStmt & ast);

@@ -36,8 +36,7 @@ struct dump_visitor {
     }
 
     void operator() (AstFunctionDef const & p) {
-        printf("FunctionDef: %s\n", p.name.c_str());
-        printf("Decorators:  "); visit(p.decorators);
+        printf("FunctionDef:"); visit(p.name);
         printf("\nArguments: "); visit(p.args);
         printf("\nBody:");
         visit(p.body);
@@ -77,12 +76,8 @@ struct dump_visitor {
     }
 
     void operator() (AstKeyword const & p) {
-        printf("KWName: %s KWValue: ", p.name.c_str());
-        visit(p.value);
-    }
-
-    void operator() (AstKeywordExpr const & p) {
-        visit(p.kw);
+        printf("KWName: "); visit(p.name);
+        printf("KWValue: ");visit(p.value);
     }
 
     void operator() (AstCall const & p) {
