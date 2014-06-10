@@ -18,16 +18,20 @@ namespace pypa {
     void dump(AstPtr);
 }
 
-int main() {
+int main(int argc, char const ** argv) {
+    if(argc != 2) {
+        return 1;
+    }
     pypa::AstModulePtr ast;
     pypa::Parser parser;
-    pypa::Lexer lexer("test.py");
+    pypa::Lexer lexer(argv[1]);
     if(parser.parse(lexer, ast)) {
         printf("Parsing successfull %d\n", int(ast->body->items.front()->type));
         dump(ast);
     }
     else {
         printf("Parsing failed\n");
+        return 1;
     }
     return 0;
 }

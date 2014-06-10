@@ -30,12 +30,32 @@ struct dump_visitor {
     void operator() (AstSuite const & a) {
         printf("Suite:\n");
         visit(a.items);
+        printf("\n");
     }
 
     void operator() (AstArguments const & a) {
-       visit(a.arguments);
-       if(!a.args.empty()) { printf("*%s, ", a.args.c_str()); }
-       if(!a.kwargs.empty()) { printf("**%s, ", a.kwargs.c_str()); }
+       if(!a.defaults.empty()) {
+            assert(a.defaults.size() == a.arguments.size());
+            if(a.defaults.size() == a.arguments.size()) {
+                for(size_t i = 0; i < a.defaults.size(); ++i) {
+                    visit(a.arguments[i]); printf("="); visit(a.defaults[i]); printf(", ");
+                }
+            }
+
+        }
+        else {
+           visit(a.arguments);
+        }
+        if(!a.args.empty()) {
+            printf(", *"); visit(a.args);
+        }
+        if(!a.keywords.empty()) {
+            assert(a.keywords.empty() || a.defaults.empty());
+            printf(", "); visit(a.keywords);
+        }
+        if(a.kwargs) {
+            printf(", **"); visit(a.kwargs);
+        }
     }
 
     void operator() (AstYieldExpr const & a) {
@@ -96,14 +116,8 @@ struct dump_visitor {
     void operator() (AstCall const & p) {
         printf("Call:\n\tFunction:");
         visit(p.function);
-        printf("\n\tPositional Arguments:");
-        visit(p.arguments);
-        printf("\n\t*args:");
-        visit(p.args);
-        printf("\n\tKeyword Arguments:");
-        visit(p.keywords);
-        printf("\n\t**kwargs:");
-        visit(p.kwargs);
+        printf("\n\t\tArgs:");
+        visit(p.arglist);
         printf("\n");
     }
 
@@ -140,12 +154,38 @@ struct dump_visitor {
         printf("[Expression? %d]\n", int(s.type));
     }
 
+    void operator() (AstAssign const & p) {
+        printf("Assign: Target: "); visit(p.targets);
+        printf(" = Value: "); visit(p.value);
+    }
+
+    void operator() (AstAttribute const & p) {
+        printf("Attribute: Value: "); visit(p.value);
+        printf("AttrName: "); visit(p.attribute);
+    }
+
     void operator() (AstWithItem const & p) {
         printf("WithItem:\n\tContext:");
         visit(p.context);
         printf("\n\tOptional:");
         visit(p.optional);
         printf("\n");
+    }
+
+    void operator() (AstClassDef const & p) {
+        printf("ClassDef: "); visit(p.name);
+        printf("Bases: "); visit(p.bases);
+        printf("Body: "); visit(p.body);
+    }
+
+    void operator() (AstExtSlice const & p) {
+        printf("ExtSlice Dims: "); visit(p.dims);
+    }
+
+    void operator() (AstSlice const & p) {
+        printf(" Lower: "); visit(p.lower);
+        printf(" Upper: "); visit(p.upper);
+        printf(" Step: "); visit(p.step);
     }
 
     void operator() (AstSubscript const & p) {

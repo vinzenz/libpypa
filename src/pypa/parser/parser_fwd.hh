@@ -84,15 +84,15 @@ namespace pypa {
     bool sliceop(State & s, AstExpr & ast);
     bool small_stmt(State & s, AstStmt & ast);
     bool stmt(State & s, AstStmt & ast);
-    bool subscript(State & s, AstExpr & ast);
-    bool subscriptlist(State & s, AstExpr & ast);
+    bool subscript(State & s, AstSliceKindPtr & ast);
+    bool subscriptlist(State & s, AstExtSlice & ast);
     bool suite(State & s, AstStmt & ast);
     bool term(State & s, AstExpr & ast);
     bool test(State & s, AstExpr & ast);
     bool testlist(State & s, AstExpr & ast);
     bool testlist_comp(State & s, AstExpr & ast);
     bool testlist_safe(State & s, AstExpr & ast);
-    bool trailer(State & s, AstExpr & ast);
+    bool trailer(State & s, AstExpr & ast, AstExpr target);
     bool try_stmt(State & s, AstStmt & ast);
     bool varargslist(State & s, AstArguments & ast);
     bool while_stmt(State & s, AstStmt & ast);

@@ -93,8 +93,9 @@ bool generic_binop_expr(State & s, AstExpr & ast, TokenKind op, AstBinOpType op_
                 return false;
             }
         }
+        return guard.commit();
     }
-    return guard.commit();
+    return false;
 }
 
 template< typename Fun >
@@ -115,8 +116,9 @@ bool generic_boolop_expr(State & s, AstExpr & ast, Token op, AstBoolOpType op_ty
                 p->values.push_back(tmp);
             }
         }
+        return guard.commit();
     }
-    return guard.commit();
+    return false;
 }
 
 bool dotted_as_names(State & s, AstExpr & ast) {
@@ -225,14 +227,14 @@ bool dotted_name(State & s, AstExpr & ast) {
 }
 
 bool small_stmt(State & s, AstStmt & ast) {
-    return expr_stmt(s, ast)
-        || print_stmt(s, ast)
+    return print_stmt(s, ast)
+        || expr_stmt(s, ast)
         || del_stmt(s, ast)
         || pass_stmt(s, ast)
         || flow_stmt(s, ast)
-        ||import_stmt(s, ast)
+        || import_stmt(s, ast)
         || global_stmt(s, ast)
-        || exec_stmt
+        || exec_stmt(s, ast)
         || assert_stmt(s, ast)
     ;
 }
@@ -308,8 +310,9 @@ bool import_from(State & s, AstStmt & ast) {
         else {
             return false;
         }
+        return guard.commit();
     }
-    return guard.commit();
+    return false;
 }
 
 bool import_as_names(State & s, AstExpr & ast) {
@@ -665,6 +668,9 @@ bool atom(State & s, AstExpr & ast) {
             expect(s, Token::String);
         }
     }
+    else {
+        return false;
+    }
     return guard.commit();
 }
 
@@ -695,6 +701,38 @@ bool arglist(State & s, AstArguments & ast) {
     StateGuard guard(s);
     // location(s, create(ast));
     // (argument expect(s, TokenKind::Comma))* (argument [expect(s, TokenKind::Comma)]||expect(s, TokenKind::Star) test (expect(s, TokenKind::Comma) argument)* [expect(s, TokenKind::Comma) expect(s, TokenKind::DoubleStar) test]||expect(s, TokenKind::DoubleStar) test)
+    AstExpr item;
+    while(!(is(s, TokenKind::Star) || is(s, TokenKind::DoubleStar)) && argument(s, item)) {
+        ast.arguments.push_back(item);
+        if(!expect(s, TokenKind::Comma)) {
+            break;
+        }
+    }
+    expect(s, TokenKind::Comma);
+    while(expect(s, TokenKind::Star)) {
+        if(!test(s, item)) {
+            return false;
+        }
+        ast.args.push_back(item);
+        if(!expect(s, TokenKind::Comma)) {
+            break;
+        }
+    }
+    while(!is(s, TokenKind::DoubleStar) && argument(s, item)) {
+        if(item->type != AstType::Keyword) {
+            return false;
+        }
+        ast.keywords.push_back(item);
+        if(!expect(s, TokenKind::Comma)) {
+            break;
+        }
+    }
+    expect(s, TokenKind::Comma);
+    if(expect(s, TokenKind::DoubleStar)) {
+        if(!test(s, ast.kwargs)) {
+            return false;
+        }
+    }
     return guard.commit();
 }
 
@@ -789,6 +827,7 @@ bool simple_stmt(State & s, AstStmt & ast) {
     if(!expect(s, TokenKind::NewLine)) {
         return false;
     }
+    while(expect(s, TokenKind::NewLine));
     return guard.commit();
 }
 
@@ -871,15 +910,67 @@ bool test(State & s, AstExpr & ast) {
 
 bool global_stmt(State & s, AstStmt & ast) {
     StateGuard guard(s, ast);
-    location(s, create(ast));
+    AstGlobalPtr ptr;
+    location(s, create(ptr));
+    ast = ptr;
     // expect(s, Token::KeywordGlobal) expect(s, Token::Identifier) (expect(s, TokenKind::Comma) expect(s, Token::Identifier))*
-    return guard.commit();
+    if(expect(s, Token::KeywordGlobal)) {
+        AstExpr item;
+        if(!get_name(s, item)) {
+            return false;
+        }
+        assert(ptr->type == AstType::Name);
+        if(ptr->type != AstType::Name) {
+            return false;
+        }
+        ptr->names.push_back(std::static_pointer_cast<AstName>(item));
+        while(expect(s, TokenKind::Comma)) {
+            if(!get_name(s, item)) {
+                return false;
+            }
+            assert(ptr->type == AstType::Name);
+            if(ptr->type != AstType::Name) {
+                return false;
+            }
+            ptr->names.push_back(std::static_pointer_cast<AstName>(item));
+        }
+        return guard.commit();
+    }
+    return false;
 }
 
-bool subscript(State & s, AstExpr & ast) {
+bool subscript(State & s, AstSliceKindPtr & ast) {
     StateGuard guard(s, ast);
-    location(s, create(ast));
     // expect(s, TokenKind::Dot) expect(s, TokenKind::Dot) expect(s, TokenKind::Dot) || test || [test] expect(s, TokenKind::Colon) [test] [sliceop]
+    if(is(s, TokenKind::Dot)) {
+        AstEllipsisPtr ellipsis;
+        location(s, create(ellipsis));
+        if(!(expect(s, TokenKind::Dot) && expect(s, TokenKind::Dot) && expect(s, TokenKind::Dot))) {
+            return false;
+        }
+        ast = ellipsis;
+    }
+    else {
+        AstIndexPtr index;
+        location(s, create(index));
+        test(s, index->value);
+        if(expect(s, TokenKind::Colon)) {
+            AstSlicePtr slice;
+            location(s, create(slice));
+            slice->line = index->line;
+            slice->column = index->column;
+            slice->lower = index->value;
+            test(s, slice->upper);
+            sliceop(s, slice->step);
+            ast = slice;
+        }
+        else {
+            if(!index->value) {
+                return false;
+            }
+            ast = index;
+        }
+    }
     return guard.commit();
 }
 
@@ -952,10 +1043,17 @@ bool yield_expr(State & s, AstExpr & ast) {
 
 bool power(State & s, AstExpr & ast) {
     StateGuard guard(s, ast);
-    location(s, create(ast));
+    // location(s, create(ast));
     // atom trailer* [expect(s, TokenKind::DoubleStar) factor]
     if(atom(s, ast)) {
-        // TODO: Trailer missing
+        AstExpr expr;
+        while(trailer(s, expr, ast)) {
+            ast = expr;
+        }
+        if(expr) {
+            ast = expr;
+        }
+
         if(expect(s, TokenKind::DoubleStar)) {
             AstBinOpPtr ptr;
             location(s, create(ptr));
@@ -1016,10 +1114,21 @@ bool print_stmt(State & s, AstStmt & ast) {
     return guard.commit();
 }
 
-bool subscriptlist(State & s, AstExpr & ast) {
-    StateGuard guard(s, ast);
-    location(s, create(ast));
+bool subscriptlist(State & s, AstExtSlice & ast) {
+    StateGuard guard(s);
+    location(s, ast);
     // subscript (expect(s, TokenKind::Comma) subscript)* [expect(s, TokenKind::Comma)]
+    AstSliceKindPtr item;
+    if(!subscript(s, item)) {
+        return false;
+    }
+    ast.dims.push_back(item);
+    while(expect(s, TokenKind::Comma)) {
+        if(!subscript(s, item)) {
+            break;
+        }
+        ast.dims.push_back(item);
+    }
     return guard.commit();
 }
 
@@ -1094,7 +1203,7 @@ bool argument(State & s, AstExpr & ast) {
         ast = ptr;
         ptr->target = first;
         if(!comp_for(s, ptr->iter)) {
-            return false;
+            ast = first;
         }
     }
     else {
@@ -1273,8 +1382,12 @@ bool decorated(State & s, AstStmt & ast) {
 
 bool expr_stmt(State & s, AstStmt & ast) {
     StateGuard guard(s);
+    AstExpressionStatementPtr ptr;
+    location(s, create(ptr));
+    ast = ptr;
     AstExpr target;
     if(testlist(s, target)) {
+        ptr->expr = target;
         AstBinOpType op{};
         if(augassign(s, op)) {
             AstAugAssignPtr ptr;
@@ -1287,18 +1400,17 @@ bool expr_stmt(State & s, AstStmt & ast) {
             }
         }
         else {
-            if(!is(s, TokenKind::Equal)) {
-                return false;
-            }
-            AstAssignPtr ptr;
-            location(s, create(ptr));
-            ptr->targets = target;
-            while(expect(s, TokenKind::Equal)) {
-                AstExpr value;
-                if(!yield_expr(s, value) && !testlist(s, value)) {
-                    return false;
+            if(is(s, TokenKind::Equal)) {
+                AstAssignPtr ptr;
+                location(s, create(ptr));
+                ptr->targets = target;
+                while(expect(s, TokenKind::Equal)) {
+                    AstExpr value;
+                    if(!yield_expr(s, value) && !testlist(s, value)) {
+                        return false;
+                    }
+                    ptr->value.items.push_back(value);
                 }
-                ptr->value.items.push_back(value);
             }
         }
     }
@@ -1680,9 +1792,11 @@ bool varargslist(State & s, AstArguments & ast) {
         }
     }
     if(expect(s, TokenKind::Star)) {
-        if(!consume_value(s, Token::Identifier, ast.args)) {
+        AstExpr arg;
+        if(!get_name(s, arg)) {
             return false;
         }
+        ast.args.push_back(arg);
     }
 
     if(!ast.args.empty() && !expect(s, TokenKind::Comma)) {
@@ -1690,17 +1804,62 @@ bool varargslist(State & s, AstArguments & ast) {
     }
 
     if(expect(s, TokenKind::DoubleStar)) {
-        if(!consume_value(s, Token::Identifier, ast.kwargs)) {
+        if(!get_name(s, ast.kwargs)) {
             return false;
         }
     }
     return guard.commit();
 }
 
-bool trailer(State & s, AstExpr & ast) {
+bool trailer(State & s, AstExpr & ast, AstExpr target) {
     StateGuard guard(s, ast);
-    location(s, create(ast));
-    // expect(s, TokenKind::LeftParen) [arglist] expect(s, TokenKind::RightParen) || expect(s, TokenKind::LeftBracket) subscriptlist expect(s, TokenKind::RightBracket) || expect(s, TokenKind::Dot) expect(s, Token::Identifier)
+    // expect(s, TokenKind::LeftParen) [arglist] expect(s, TokenKind::RightParen)
+    if(is(s, TokenKind::LeftParen)) {
+        AstCallPtr ptr;
+        location(s, create(ptr));
+        ast = ptr;
+        ptr->function = target;
+        expect(s, TokenKind::LeftParen);
+        arglist(s, ptr->arglist);
+        if(!expect(s, TokenKind::RightParen)) {
+            return false;
+        }
+    }
+    // || expect(s, TokenKind::LeftBracket) subscriptlist expect(s, TokenKind::RightBracket)
+    else if(is(s, TokenKind::LeftBracket)) {
+        AstSubscriptPtr ptr;
+        location(s, create(ptr));
+        ast = ptr;
+        ptr->value = target;
+        expect(s, TokenKind::LeftBracket);
+        AstExtSlicePtr slice_ptr;
+        create(slice_ptr);
+        ptr->slice = slice_ptr;
+        if(!subscriptlist(s, *slice_ptr)) {
+            return false;
+        }
+        if(slice_ptr->dims.size() == 1) {
+            ptr->slice = slice_ptr->dims.front();
+        }
+        if(!expect(s, TokenKind::RightBracket)) {
+            return false;
+        }
+    }
+    // || expect(s, TokenKind::Dot) expect(s, Token::Identifier)
+    else if(is(s, TokenKind::Dot)) {
+        AstAttributePtr ptr;
+        location(s, create(ptr));
+        ast = ptr;
+        ptr->value = target;
+        expect(s, TokenKind::Dot);
+        if(!get_name(s, ptr->attribute)) {
+            return false;
+        }
+    }
+    else {
+        return false;
+    }
+
     return guard.commit();
 }
 

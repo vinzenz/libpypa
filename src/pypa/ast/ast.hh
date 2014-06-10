@@ -52,8 +52,9 @@ PYPA_AST_STMT(Assign) {
 PYPA_AST_TYPE_DECL_DERIVED(Arguments) {
     AstExprList arguments;
     AstExprList defaults;
-    String kwargs;
-    String args;
+    AstExpr     kwargs;
+    AstExprList args;
+    AstExprList keywords;
 };
 DEF_AST_TYPE_BY_ID1(Arguments);
 
@@ -84,10 +85,7 @@ PYPA_AST_STMT(Break) {};
 
 PYPA_AST_EXPR(Call) {
     AstExpr      function;
-    AstExprList  args;
-    AstExprList  kwargs;
-    AstExprList  arguments;
-    AstExprList  keywords;
+    AstArguments arglist;
 };
 
 PYPA_AST_STMT(ClassDef) {
@@ -165,7 +163,7 @@ PYPA_AST_STMT(ExpressionStatement) {
 };
 
 PYPA_AST_TYPE_DECL_SLICE_KIND(ExtSlice) {
-    AstExprList dims;
+    AstSliceKindList dims;
 };
 DEF_AST_TYPE_BY_ID1(ExtSlice);
 
@@ -194,7 +192,7 @@ PYPA_AST_EXPR(Generator) {
 };
 
 PYPA_AST_STMT(Global) {
-    StringList names;
+    std::vector<AstNamePtr> names;
 };
 
 PYPA_AST_STMT(If) {
@@ -211,7 +209,7 @@ PYPA_AST_EXPR(IfExpr) {
 };
 
 PYPA_AST_TYPE_DECL_SLICE_KIND(Index) {
-    AstExprList value;
+    AstExpr value;
 };
 DEF_AST_TYPE_BY_ID1(Index);
 
