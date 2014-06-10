@@ -1,4 +1,4 @@
-# libpypa - A Python Parser Library
+# libpypa - A Python Parser Library in C++
 
 - [Introduction](#introduction)
  - [Motivation](#introduction-motivation)
