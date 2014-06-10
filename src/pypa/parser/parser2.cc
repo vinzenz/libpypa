@@ -668,6 +668,19 @@ bool atom(State & s, AstExpr & ast) {
             expect(s, Token::String);
         }
     }
+    else if(is(s, Token::KeywordTrue) || is(s, Token::KeywordFalse)) {
+        AstBoolPtr ptr;
+        location(s, create(ptr));
+        ast = ptr;
+        ptr->value = is(s, Token::KeywordTrue);
+        expect(s, Token::KeywordTrue) || expect(s, Token::KeywordFalse);
+    }
+    else if(is(s, Token::KeywordNone)) {
+        AstNonePtr ptr;
+        location(s, create(ptr));
+        ast = ptr;
+        expect(s, Token::KeywordNone);
+    }
     else {
         return false;
     }
@@ -1881,7 +1894,7 @@ bool eval_input(State & s, AstStmt & ast) {
     while(expect(s, Token::NewLine)) {
         // Nothing to be done, we just consume all NewLines
         // until there's none anymore
-    }
+    }    
     if(!expect(s, Token::End)) {
         return false;
     }

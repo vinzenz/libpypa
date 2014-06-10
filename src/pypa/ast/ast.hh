@@ -76,6 +76,10 @@ PYPA_AST_EXPR(BinOp) {
     AstExpr         right;
 };
 
+PYPA_AST_EXPR(Bool) {
+    bool value;
+};
+
 PYPA_AST_EXPR(BoolOp) {
     AstBoolOpType op;
     AstExprList   values;
@@ -237,6 +241,8 @@ PYPA_AST_EXPR(ListComp) {
     AstExpr generators;
     AstExpr element;
 };
+
+PYPA_AST_EXPR(None) {};
 
 PYPA_AST_EXPR(Number) {
     enum Type {

@@ -33,6 +33,10 @@ struct dump_visitor {
         printf("\n");
     }
 
+    void operator() (AstNone const &) {
+        printf("None");
+    }
+
     void operator() (AstArguments const & a) {
        if(!a.defaults.empty()) {
             assert(a.defaults.size() == a.arguments.size());
@@ -97,7 +101,7 @@ struct dump_visitor {
         for(auto e : p.elements) {
             visit(e); printf(", ");
         }
-        printf("]");
+        printf("]\n");
     }
 
     void operator() (AstExpressionStatement const & p) {
@@ -230,13 +234,17 @@ struct dump_visitor {
         printf(", ");
     }
 
+    void operator() (AstBool const & p) {
+        printf("%s", p.value ? "True" : "False");
+    }
+
     template< typename T >
     void visit(std::vector<T> const & v) {
         if(v.empty()) printf("[]");
         else for(auto e : v) {
             visit(e);
         }
-    }
+    }      
 
     void visit(Ast const & p) {
         pypa::visit(*this, p);
