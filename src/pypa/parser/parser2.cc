@@ -21,6 +21,64 @@ namespace pypa {
 
 void syntax_error(State & s, char const * message) {}
 
+inline int64_t base_char_to_value(char c) {
+    if(c >= '0' && c <= '9') {
+        return int64_t(c - '0');
+    }
+    if(c >= 'A' && c <= 'F') {
+        return int64_t(c - 'A') + 10;
+    }
+    return int64_t(c - 'a') + 10;
+}
+
+bool number_from_base(int64_t base, State & s, AstNumberPtr & ast) {
+    String const & value = top(s).value;
+    AstNumber & result = *ast;
+    result.num_type = AstNumber::Integer;
+    result.integer = 0;
+    for(auto c : value) {
+        result.integer *= base;
+        int64_t tmp = base_char_to_value(c);
+        result.integer += tmp;
+    }
+    return true;
+}
+
+bool number(State & s, AstNumberPtr & ast) {
+    StateGuard guard(s, ast);
+    location(s, create(ast));
+    int base = 0;
+    if(is(s, Token::NumberFloat)) {
+        String const & dstr = top(s).value;
+        char * e = 0;
+        double result = strtod(dstr.c_str(), &e);
+        if(!e || *e) {
+            return false;
+        }
+        ast->num_type = AstNumber::Float;
+        ast->floating = result;
+        pop(s);
+        return guard.commit();
+    }
+    else if(is(s, Token::NumberBinary)) {
+        base = 2;
+    }
+    else if(is(s, Token::NumberOct)) {
+        base = 8;
+    }
+    else if(is(s, Token::NumberInteger)) {
+        base = 10;
+    }
+    else if(is(s, Token::NumberHex)) {
+        base = 16;
+    }
+    if(base && number_from_base(base, s, ast)) {
+        pop(s);
+        return guard.commit();
+    }
+    return false;
+}
+
 template< typename Fun >
 bool generic_binop_expr(State & s, AstExpr & ast, TokenKind op, AstBinOpType op_type, Fun fun) {
     StateGuard guard(s, ast);
@@ -324,17 +382,26 @@ bool testlist_comp(State & s, AstExpr & ast) {
     if(!test(s, tmp)) {
         return false;
     }
-    exprs->items.push_back(tmp);
-    for(;;) {
-        if(!comp_for(s, tmp)) {
+    if(is(s, Token::KeywordFor)) {
+        AstGeneratorPtr generator;
+        location(s, create(generator));
+        ast = generator;
+        generator->expression = tmp;
+        if(!comp_for(s, generator->for_expr)) {
+            return false;
+        }
+    }
+    else {
+        exprs->items.push_back(tmp);
+        for(;;) {
             if(!expect(s, TokenKind::Comma)) {
                 break;
             }
             if(!test(s, tmp)) {
-                return false;
+                break;
             }
+            exprs->items.push_back(tmp);
         }
-        exprs->items.push_back(tmp);
     }
     return guard.commit();
 }
@@ -362,7 +429,10 @@ bool except_clause(State & s, AstExpr & ast) {
 
 bool listmaker(State & s, AstExpr & ast) {
     StateGuard guard(s, ast);    
-    if(!test(s, ast)) {
+    AstListPtr ptr;
+    location(s, create(ptr));
+    // test ( list_for || (expect(s, TokenKind::Comma) test)* [expect(s, TokenKind::Comma)] )
+    if(test(s, ast)) {
         if(is(s, Token::KeywordFor)) {
             AstListCompPtr comp;
             location(s, create(comp));
@@ -372,9 +442,19 @@ bool listmaker(State & s, AstExpr & ast) {
                 return false;
             }
         }
+        else {
+            ptr->elements.push_back(ast);
+            ast = ptr;
+            while(expect(s, TokenKind::Comma)) {
+                AstExpr tmp;
+                if(!test(s, tmp)) {
+                    break;
+                }
+                ptr->elements.push_back(tmp);
+            }
+        }
     }
-    // test ( list_for || (expect(s, TokenKind::Comma) test)* [expect(s, TokenKind::Comma)] )
-
+    // else empty list => OK
     return guard.commit();
 }
 
@@ -501,7 +581,23 @@ bool atom(State & s, AstExpr & ast) {
     // expect(s, TokenKind::LeftParen) [yield_expr||testlist_comp] expect(s, TokenKind::RightParen)
     if(expect(s, TokenKind::LeftParen)) {
         // Either or, both optional
-        if(!yield_expr(s, ast) && !testlist_comp(s, ast)) {
+        if(testlist_comp(s, ast)) {
+            if(ast->type != AstType::Generator) {
+                AstTuplePtr ptr;
+                location(s, create(ptr));
+                if(ast->type == AstType::Expressions) {
+                    AstExpressions & e = *static_cast<AstExpressions*>(ast.get());
+                    for(auto item : e.items) {
+                        ptr->elements.push_back(item);
+                    }
+                }
+                else {
+                    ptr->elements.push_back(ast);
+                }
+                ast = ptr;
+            }
+        }
+        else if(!yield_expr(s, ast)) {
             AstTuplePtr ptr;
             location(s, create(ptr));
             ast = ptr;
@@ -550,7 +646,11 @@ bool atom(State & s, AstExpr & ast) {
     }
     // || NUMBER
     else if(is(s, TokenKind::Number)) {
-        // TODO:
+        AstNumberPtr ptr;
+        if(!number(s, ptr)) {
+            return false;
+        }
+        ast = ptr;
     }
     // || STRING+
     else if(is(s, Token::String)) {
@@ -559,7 +659,7 @@ bool atom(State & s, AstExpr & ast) {
         ast = ptr;
         while(is(s, Token::String)) {
             AstStrPtr str;
-            location(s, create(ptr));
+            location(s, create(str));
             str->value = top(s).value;
             ptr->items.push_back(str);
             expect(s, Token::String);
@@ -682,6 +782,9 @@ bool simple_stmt(State & s, AstStmt & ast) {
                 break;
             }
         }
+    }
+    if(suite_->items.size() == 1) {
+        ast = tmp;
     }
     if(!expect(s, TokenKind::NewLine)) {
         return false;
@@ -851,7 +954,21 @@ bool power(State & s, AstExpr & ast) {
     StateGuard guard(s, ast);
     location(s, create(ast));
     // atom trailer* [expect(s, TokenKind::DoubleStar) factor]
-    return guard.commit();
+    if(atom(s, ast)) {
+        // TODO: Trailer missing
+        if(expect(s, TokenKind::DoubleStar)) {
+            AstBinOpPtr ptr;
+            location(s, create(ptr));
+            ptr->left = ast;
+            ast = ptr;
+            ptr->op = AstBinOpType::Power;
+            if(!factor(s, ptr->right)) {
+                return false;
+            }
+        }
+        return guard.commit();
+    }
+    return false;
 }
 
 bool print_stmt(State & s, AstStmt & ast) {
@@ -860,9 +977,12 @@ bool print_stmt(State & s, AstStmt & ast) {
     location(s, create(ptr));
     ast = ptr;
     // 'print' ( [ test (expect(s, TokenKind::Comma) test)* [expect(s, TokenKind::Comma)] ] ||expect(s, TokenKind::RightShift) test [ (expect(s, TokenKind::Comma) test)+ [expect(s, TokenKind::Comma)] ] )
-    if(top(s).value != "test") {
+    if(top(s).value != "print") {
         return false;
     }
+    // Consume 'print'
+    pop(s);
+
     if(expect(s, TokenKind::RightShift)) {
         if(!test(s, ptr->destination)) {
             return false;
@@ -918,8 +1038,8 @@ bool testlist(State & s, AstExpr & ast) {
         if(!test(s, temp)) {
             break;
         }
+        ptr->items.push_back(temp);
     }
-    ptr->items.push_back(temp);
     if(ptr->items.size() == 1) {
         ast = ptr->items.front();
         ptr.reset();
@@ -1085,7 +1205,6 @@ bool lambdef(State & s, AstExpr & ast) {
 
 bool suite(State & s, AstStmt & ast) {
     // simple_stmt || expect(s, Token::NewLine) expect(s, Token::Indent) stmt+ expect(s, Token::Dedent)
-    if(simple_stmt(s, ast)) return true;
     if(expect(s, Token::NewLine)) {
         StateGuard guard(s, ast);
         AstSuitePtr suite_;
@@ -1093,10 +1212,12 @@ bool suite(State & s, AstStmt & ast) {
         ast = suite_;
         if(expect(s, Token::Indent)) {
             AstStmt stmt_;
-            if(stmt(s, stmt_)) {
+            if(stmt(s, stmt_)) {                
                 suite_->items.push_back(stmt_);
+                stmt_.reset();
                 while(stmt(s, stmt_)) {
                     suite_->items.push_back(stmt_);
+                    stmt_.reset();
                 }
                 if(!expect(s, Token::Dedent)) {
                     return false;
@@ -1104,6 +1225,9 @@ bool suite(State & s, AstStmt & ast) {
                 return guard.commit();
             }
         }
+    }
+    if(simple_stmt(s, ast)) {
+        return true;
     }
     return false;
 }
@@ -1326,9 +1450,9 @@ bool term(State & s, AstExpr & ast) {
                 return false;
             }
         }
-
+        return guard.commit();
     }
-    return guard.commit();
+    return false;
 }
 
 bool pass_stmt(State & s, AstStmt & ast) {
@@ -1375,7 +1499,7 @@ bool dictorsetmaker(State & s, AstExpr & ast) {
     AstExpr first, second;
     // ((test expect(s, TokenKind::Colon) test (comp_for || (expect(s, TokenKind::Comma) test expect(s, TokenKind::Colon) test)* [expect(s, TokenKind::Comma)])) ||(test (comp_for || (expect(s, TokenKind::Comma) test)* [expect(s, TokenKind::Comma)])))
     if(test(s, first)) {
-        if(is(s, TokenKind::Colon)) {
+        if(expect(s, TokenKind::Colon)) {
             // Dict
             AstDictPtr ptr;
             location(s, create(ptr));
@@ -1401,7 +1525,7 @@ bool dictorsetmaker(State & s, AstExpr & ast) {
                     if(!test(s, first)) {
                         break;
                     }
-                    if(!expect(s, TokenKind::SemiColon)) {
+                    if(!expect(s, TokenKind::Colon)) {
                         return false;
                     }
                     if(!test(s, second)) {

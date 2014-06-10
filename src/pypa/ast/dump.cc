@@ -74,8 +74,8 @@ struct dump_visitor {
 
     void operator() (AstList const & p) {
         printf("List [");
-        for(std::size_t i = 0; i < p.elements.size(); ++i) {
-            if(i) printf(", "); visit(p.elements[i]);
+        for(auto e : p.elements) {
+            visit(e); printf(", ");
         }
         printf("]");
     }

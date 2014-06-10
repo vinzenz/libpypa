@@ -207,6 +207,7 @@ namespace pypa {
             tok.value.push_back(first);
             first = next_char();
         } while (is_hex(first));
+        put_char(first);
         tok.ident = {Token::NumberHex, TokenKind::Number, TokenClass::Literal};
         if (tok.value.size() <= 2) {
             tok.ident = {Token::Invalid, TokenKind::Error, TokenClass::Default};
