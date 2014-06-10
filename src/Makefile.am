@@ -9,7 +9,7 @@ libpypa_la_SOURCES=\
 	pypa/ast/dump.cc \
 	pypa/lexer/lexer.cc \
 	pypa/parser/dtoa.c \
-	pypa/parser/parser2.cc \
+	pypa/parser/parser.cc \
 	$(NULL)
 
 noinst_PROGRAMS=lexer-test parser-test
