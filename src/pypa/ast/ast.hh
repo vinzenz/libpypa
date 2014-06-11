@@ -106,6 +106,10 @@ PYPA_AST_EXPR(Compare) {
     AstExpr right;
 };
 
+PYPA_AST_EXPR(Complex) {
+    String complex;
+};
+
 PYPA_AST_EXPR(Comprehension) {
     AstExpr target;
     AstExpr iter;

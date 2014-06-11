@@ -326,6 +326,10 @@ struct dump_visitor {
         printf("\n");
     }
 
+    void operator() (AstComplex const & p) {
+        printf("Complex: %s", p.complex.c_str());
+    }
+
     void operator() (AstContinue const &) {
         printf("Continue");
     }

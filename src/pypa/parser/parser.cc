@@ -756,11 +756,21 @@ bool atom(State & s, AstExpr & ast) {
     }
     // || NUMBER
     else if(is(s, TokenKind::Number)) {
-        AstNumberPtr ptr;
-        if(!number(s, ptr)) {
-            return false;
+        if(is(s, Token::NumberComplex)) {
+            AstComplexPtr ptr;
+            location(s, create(ptr));
+            if(!consume_value(s, Token::NumberComplex, ptr->complex)) {
+                assert("This should not happen at this point" && false);
+                return false;
+            }
         }
-        ast = ptr;
+        else {
+            AstNumberPtr ptr;
+            if(!number(s, ptr)) {
+                return false;
+            }
+            ast = ptr;
+        }
     }
     // || STRING+
     else if(is(s, Token::String)) {
@@ -952,7 +962,7 @@ bool exec_stmt(State & s, AstStmt & ast) {
     if(!expect(s, Token::KeywordExec)) {
         return false;
     }
-    if(!test(s, exec->body)) {
+    if(!expr(s, exec->body)) {
         syntax_error(s, ast, "Expected expression after `exec`");
         return false;
     }
@@ -2086,17 +2096,18 @@ bool arith_expr(State & s, AstExpr & ast) {
     if(!term(s, ast)) {
         return false;
     }
-    if(is(s, TokenKind::Plus) || is(s, TokenKind::Minus)) {
+    while(is(s, TokenKind::Plus) || is(s, TokenKind::Minus)) {
         AstBinOpPtr ptr;
         location(s, create(ptr));
         ptr->left = ast;
+        ast = ptr;
         if(expect(s, TokenKind::Plus)) {
             ptr->op = AstBinOpType::Add;
         }
         else if(expect(s, TokenKind::Minus)) {
             ptr->op = AstBinOpType::Sub;
         }
-        if(!arith_expr(s, ptr->right)) {
+        if(!term(s, ptr->right)) {
             syntax_error(s, ast, "Expected expression after operator");
             return false;
         }

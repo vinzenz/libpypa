@@ -122,10 +122,6 @@ namespace pypa {
             }
             return make_token(tok, Token::Identifier, TokenKind::Name);
         }
-        if (is_number(c0, c1, c2)) {
-            return get_number(tok, c0);
-        }
-
         for(auto const & delim : Delims()) {
             if(delim.value()[0] == c0) {
                 tok.value = delim.value().c_str();
@@ -148,6 +144,11 @@ namespace pypa {
                 return make_token(tok, op.ident());
             }
         }
+
+        if (is_number(c0, c1, c2)) {
+            return get_number(tok, c0);
+        }
+
         return tok;
     }
 
@@ -233,7 +234,7 @@ namespace pypa {
     }
 
     TokenInfo Lexer::get_number_octal(TokenInfo & tok, char first) {
-        if(first != 'o' && first != 'O') {
+        if(first != 'o' && first != 'O' && !(first >= '0' && first < '8')) {
             put_char(first);
             tok.ident = {Token::NumberInteger, TokenKind::Number, TokenClass::Literal};
             return tok;
