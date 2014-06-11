@@ -44,7 +44,6 @@ struct LexerInfo {
 };
 
 class Lexer {
-public:
     enum {
         TabSize = 8,
         AltTabSize = 1,
@@ -68,10 +67,14 @@ public:
     Lexer(char const * file_path);
     ~Lexer();
 
+    std::string get_name() const;
+    std::string get_line(int idx);
+
     std::list<LexerInfo> const & info();
 
     TokenInfo next();
 
+private:
     char skip();
     char skip_comment();
 

@@ -16,6 +16,7 @@
 #include <pypa/lexer/keyword.hh>
 #include <pypa/lexer/delim.hh>
 #include <cassert>
+#include <fstream>
 
 namespace pypa {
     inline bool is_ident_char(char c, bool first = false) {
@@ -43,6 +44,20 @@ namespace pypa {
             ;
     }
 
+    std::string Lexer::get_name() const {
+        return input_path_;
+    }
+
+    std::string Lexer::get_line(int idx) {
+        std::ifstream ifs(input_path_.c_str());
+        std::string line;
+        int lineno = 1;
+        while(std::getline(ifs, line) && lineno != idx) {
+            ++lineno;
+        }
+        return line;
+    }
+
     Lexer::Lexer(char const * file_path)
     : file_{file_path}
     , input_path_{file_path}
@@ -64,7 +79,7 @@ namespace pypa {
         return info_;
     }
 
-    TokenInfo Lexer::next() {        
+    TokenInfo Lexer::next() {
         char c0 = skip();
         if(!token_buffer_.empty()) {
             put_char(c0);

@@ -20,12 +20,26 @@
 
 namespace pypa {
 namespace {
+    enum class ErrorType {
+        SyntaxError,
+        IndentationError
+    };
+    struct Error {
+        ErrorType   type;
+        String      message;
+        TokenInfo   cur;
+        AstPtr      ast;
+        int         detected_line;
+        std::string line;
+    };
+
     struct State {
         Lexer *                 lexer;
         std::stack<TokenInfo>   tokens;
         std::stack<TokenInfo>   popped;
         std::stack<std::size_t> savepoints;
         TokenInfo               tok_cur;
+        std::stack<Error>       errors;
     };
 
     TokenInfo pop(State & s) {

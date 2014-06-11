@@ -20,7 +20,6 @@
 int main(int argc, char const ** argv) {
     int errors = 0;
     int warnings = 0;
-    int64_t lines = 0;
     for(int i = 0 + (argc == 1 ? 0 : 1); i < argc; ++i) {
         char const * file = i != 0 ? argv[i] : "test.py";
         pypa::Lexer l(file);
@@ -42,10 +41,8 @@ int main(int argc, char const ** argv) {
             }
         }
 //        printf("%s current line: %d\n", file, l.line_);
-        lines += l.line_;
         if(warnings || errors) return 0;
     }
     printf("%d lexing errors\n", errors);
     printf("%d lexing warnings\n", warnings);
-    printf("%lld Lines parsed\n", lines);
 }
