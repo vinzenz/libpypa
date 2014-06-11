@@ -1733,7 +1733,7 @@ bool pass_stmt(State & s, AstStmt & ast) {
 }
 
 bool xor_expr(State & s, AstExpr & ast) {
-    return generic_binop_expr(s, ast, TokenKind::CircumFlex, AstBinOpType::BitXor, shift_expr);
+    return generic_binop_expr(s, ast, TokenKind::CircumFlex, AstBinOpType::BitXor, and_expr);
 }
 
 bool file_input(State & s, AstModulePtr & ast) {

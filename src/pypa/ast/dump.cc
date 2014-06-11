@@ -64,6 +64,74 @@ struct dump_visitor {
         printf(" Iter: "); visit(p.iter);
     }
 
+    void operator() (AstBinOp const & p) {
+        printf("BinOp: "); visit(p.left);
+        printf(" "); visit(p.op); printf(" "); visit(p.right);
+    }
+
+    void operator() (AstDecorator const & p) {
+        printf("Decorator: "); visit(p.name);
+        printf(" Arguments: "); visit(p.arguments);
+    }
+
+    void operator() (AstDecorated const & p) {
+        printf("Decorated: "); visit(p.decorators); visit(p.cls_or_fun_def);
+    }
+
+    void operator() (AstDecorators const & p) {
+        printf("Decorators: "); visit(p.decorators);
+    }
+
+    void operator() (AstDelete const & p) {
+        printf("Delete: "); visit(p.targets);
+    }
+
+    void operator() (AstFor const & p) {
+        printf("For: "); visit(p.target);
+        printf(" in: "); visit(p.iter);
+        printf(" Body: "); visit(p.body);
+        printf(" Else: "); visit(p.orelse);
+    }
+
+    void operator() (AstIf const & p) {
+        printf("If: "); visit(p.test);
+        printf(" Body: "); visit(p.body);
+        printf(" ElIf: "); visit(p.elif);
+        printf(" Else: "); visit(p.orelse);
+    }
+
+    void operator() (AstImportFrom const & p) {
+        printf("ImportFrom: From: "); visit(p.module);
+        printf(" Import: "); visit(p.names);
+        printf(" Level: %d\n", p.level);
+    }
+
+    void operator() (AstImport const & p) {
+        printf("ImportFrom: From: "); visit(p.names);
+    }
+
+    void visit(AstBinOpType op) {
+        switch(op) {
+        case AstBinOpType::Add:         printf("+"); break;
+        case AstBinOpType::BitAnd:      printf("&"); break;
+        case AstBinOpType::BitOr:       printf("|"); break;
+        case AstBinOpType::BitXor:      printf("^"); break;
+        case AstBinOpType::Div:         printf("/"); break;
+        case AstBinOpType::FloorDiv:    printf("//"); break;
+        case AstBinOpType::LeftShift:   printf("<<"); break;
+        case AstBinOpType::Mod:         printf("%"); break;
+        case AstBinOpType::Mult:        printf("*"); break;
+        case AstBinOpType::Power:       printf("**"); break;
+        case AstBinOpType::RightShift:  printf(">>"); break;
+        case AstBinOpType::Sub:         printf("-"); break;
+        }
+    }
+
+    void operator() (AstAugAssign const & p) {
+        printf("AugAssign Target: "); visit(p.target);
+        printf(" "); visit(p.op); printf("= "); visit(p.value);
+    }
+
     void visit(AstCompareOpType op) {
         switch(op) {
         case AstCompareOpType::Equals:      printf("=="); break;
@@ -76,6 +144,40 @@ struct dump_visitor {
         case AstCompareOpType::MoreEqual:   printf(">="); break;
         case AstCompareOpType::NotEqual:    printf("!="); break;
         case AstCompareOpType::NotIn:       printf("not in"); break;
+        }
+    }
+
+    void operator() (AstUnaryOp const & p) {
+        printf("UnaryOp: "); visit(p.op); visit(p.operand);
+    }
+
+    void operator() (AstExcept const & p) {
+        printf("Except: "); visit(p.type); printf(" as "); visit(p.name);
+        printf(" Body: "); visit(p.body);
+    }
+
+    void operator() (AstLambda const & p) {
+        printf("Lambda: "); visit(p.arguments);
+        printf(" Body: "); visit(p.body);
+    }
+
+    void operator() (AstBreak const &) {
+        printf("Break");
+    }
+
+    void visit(AstUnaryOpType op) {
+        switch(op) {
+        case AstUnaryOpType::Add:    printf("+"); break;
+        case AstUnaryOpType::Invert: printf("~"); break;
+        case AstUnaryOpType::Not:    printf("not"); break;
+        case AstUnaryOpType::Sub:    printf("-"); break;
+        }
+    }
+
+    void visit(AstBoolOpType op) {
+        switch(op) {
+        case AstBoolOpType::And:    printf("and"); break;
+        case AstBoolOpType::Or:     printf("or"); break;
         }
     }
 
@@ -222,6 +324,50 @@ struct dump_visitor {
         printf("\n\tOptional:");
         visit(p.optional);
         printf("\n");
+    }
+
+    void operator() (AstContinue const &) {
+        printf("Continue");
+    }
+
+    void operator() (AstElseIf const & p) {
+        printf("ElseIf: "); visit(p.test);
+        printf(" Body: "); visit(p.body);
+    }
+
+    void operator() (AstRaise const & p) {
+        printf("Raise: "); visit(p.arg0); printf(", "); visit(p.arg1); printf(", "); visit(p.arg2);
+    }
+
+    void operator() (AstReturn const & p) {
+        printf("Return: "); visit(p.value);
+    }
+
+    void operator() (AstTryExcept const & p) {
+        printf("TryExcept: "); visit(p.body);
+        printf(" ExceptHandlers: "); visit(p.handlers);
+        printf(" OrElse: "); visit(p.orelse);
+    }
+
+    void operator() (AstTryFinally const & p) {
+        printf("AstTryFinally: "); visit(p.body);
+        printf(" Finally: "); visit(p.final_body);
+    }
+
+    void operator() (AstBoolOp const & p) {
+        printf("BoolOp: Op: "); visit(p.op); printf(" Values: "); visit(p.values);
+    }
+
+    void operator() (AstWhile const & p) {
+        printf("While: "); visit(p.test);
+        printf(" Body"); visit(p.body);
+        printf(" Else"); visit(p.orelse);
+    }
+
+    void operator() (AstIfExpr const & p) {
+        printf("IfExpr: "); visit(p.test);
+        printf(" Body: "); visit(p.body);
+        printf(" Else: "); visit(p.orelse);
     }
 
     void operator() (AstClassDef const & p) {
