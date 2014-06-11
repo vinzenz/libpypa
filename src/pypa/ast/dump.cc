@@ -37,6 +37,54 @@ struct dump_visitor {
         printf("None");
     }
 
+    void operator() (AstListComp const & p) {
+        printf("ListComp: Element: "); visit(p.element);
+        printf("Generator: "); visit(p.generators);
+    }
+
+    void operator() (AstGenerator const & p) {
+        printf("Generator: "); visit(p.expression);
+        printf(" "); visit(p.for_expr);
+    }
+
+    void operator() (AstDictComp const & p) {
+        printf("DictComp: Key: "); visit(p.key);
+        printf(" Value: "); visit(p.value);
+        printf(" Generators: "); visit(p.generators);
+    }
+
+    void operator() (AstComprehension const & p) {
+        printf("Comprehension: "); visit(p.target);
+        printf("Iter: "); visit(p.iter);
+    }
+
+    void operator() (AstForExpr const & p) {
+        printf("ForExpr: Target: "); visit(p.items);
+        printf(" Generator: "); visit(p.generators);
+        printf(" Iter: "); visit(p.iter);
+    }
+
+    void visit(AstCompareOpType op) {
+        switch(op) {
+        case AstCompareOpType::Equals:      printf("=="); break;
+        case AstCompareOpType::In:          printf("in"); break;
+        case AstCompareOpType::Is:          printf("is"); break;
+        case AstCompareOpType::IsNot:       printf("is not"); break;
+        case AstCompareOpType::Less:        printf("<"); break;
+        case AstCompareOpType::LessEqual:   printf("<="); break;
+        case AstCompareOpType::More:        printf(">"); break;
+        case AstCompareOpType::MoreEqual:   printf(">="); break;
+        case AstCompareOpType::NotEqual:    printf("!="); break;
+        case AstCompareOpType::NotIn:       printf("not in"); break;
+        }
+    }
+
+    void operator () (AstCompare const & p) {
+        printf("Compare: "); visit(p.left);
+        printf(" "); visit(p.op); printf(" ");
+        visit(p.right);
+    }
+
     void operator() (AstArguments const & a) {
        if(!a.defaults.empty()) {
             assert(a.defaults.size() == a.arguments.size());
@@ -244,7 +292,7 @@ struct dump_visitor {
         else for(auto e : v) {
             visit(e);
         }
-    }      
+    }
 
     void visit(Ast const & p) {
         pypa::visit(*this, p);

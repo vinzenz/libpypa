@@ -35,8 +35,8 @@ PYPA_AST_EXPR(Keyword) {
 
 
 PYPA_AST_EXPR(Alias) {
-    String name;
-    String as_name;
+    AstExpr name;
+    AstExpr as_name;
 };
 
 PYPA_AST_STMT(Assert) {
@@ -159,6 +159,7 @@ PYPA_AST_STMT(Exec) {
 PYPA_AST_EXPR(Except) {
     AstExpr type;
     AstExpr name;
+    AstStmt body;
 };
 typedef std::vector<AstExceptPtr> AstExceptList;
 
