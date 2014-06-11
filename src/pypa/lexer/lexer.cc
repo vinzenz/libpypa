@@ -292,6 +292,7 @@ namespace pypa {
                 do {
                     tok.value.push_back(first);
                 } while (is_digit(first = next_char()));
+                put_char(first);
             }
             else {
                 put_char(first);
@@ -472,7 +473,7 @@ namespace pypa {
         if(continuation || level_ != 0 || c == '#' || c == '\n' || c == '\r' || c == '\x0c') {
             if(c == '#') {
                 // If this line is a commented line, don't emit NewLine
-                if(token_buffer_.back().ident.id() == Token::NewLine) {
+                if(!token_buffer_.empty() && token_buffer_.back().ident.id() == Token::NewLine) {
                     token_buffer_.pop_back();
                 }
             }

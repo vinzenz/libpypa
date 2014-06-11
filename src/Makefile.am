@@ -10,6 +10,14 @@ libpypa_la_SOURCES=\
 	pypa/lexer/lexer.cc \
 	pypa/parser/dtoa.c \
 	pypa/parser/parser.cc \
+	double-conversion/src/bignum.cc \
+	double-conversion/src/bignum-dtoa.cc \
+	double-conversion/src/cached-powers.cc \
+	double-conversion/src/diy-fp.cc \
+	double-conversion/src/double-conversion.cc \
+	double-conversion/src/fast-dtoa.cc \
+	double-conversion/src/fixed-dtoa.cc \
+	double-conversion/src/strtod.cc \
 	$(NULL)
 
 noinst_PROGRAMS=lexer-test parser-test

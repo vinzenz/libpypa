@@ -14,8 +14,7 @@
 #include  <pypa/parser/apply.hh>
 #include <pypa/parser/parser_fwd.hh>
 #include <cassert>
-
-extern "C" double strtod(const char *s00, char **se);
+#include <double-conversion/src/double-conversion.h>
 
 namespace pypa {
 
@@ -85,9 +84,11 @@ bool number(State & s, AstNumberPtr & ast) {
     int base = 0;
     if(is(s, Token::NumberFloat)) {
         String const & dstr = top(s).value;
-        char * e = 0;
-        double result = strtod(dstr.c_str(), &e);
-        if(!e || *e) {
+        double_conversion::StringToDoubleConverter conv(0, 0.0, 0.0, 0, 0);
+        int length = int(dstr.size());
+        int processed = 0;
+        double result = conv.StringToDouble(dstr.c_str(), length, &processed);
+        if(length != processed) {
             syntax_error(s, ast, "Invalid floating point number");
             return false;
         }
