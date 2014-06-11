@@ -68,7 +68,9 @@ inline int64_t base_char_to_value(char c) {
 bool number_from_base(int64_t base, State & s, AstNumberPtr & ast) {
     String const & value = top(s).value;
     AstNumber & result = *ast;
-    result.num_type = AstNumber::Integer;
+    pop(s);
+    result.num_type = top(s).value == "L" ? AstNumber::Long : AstNumber::Integer;
+    unpop(s);
     result.integer = 0;
     for(auto c : value) {
         result.integer *= base;
@@ -111,6 +113,9 @@ bool number(State & s, AstNumberPtr & ast) {
     }
     if(base && number_from_base(base, s, ast)) {
         pop(s);
+        if(ast->num_type == AstNumber::Long) {
+            pop(s);
+        }
         return guard.commit();
     }
     return false;

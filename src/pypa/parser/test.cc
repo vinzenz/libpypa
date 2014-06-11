@@ -26,7 +26,7 @@ int main(int argc, char const ** argv) {
     pypa::Parser parser;
     pypa::Lexer lexer(argv[1]);
     if(parser.parse(lexer, ast)) {
-        printf("Parsing successfull %d\n", int(ast->body->items.front()->type));
+        printf("Parsing successfull\n");
         dump(ast);
     }
     else {

@@ -8,7 +8,6 @@ libpypa_la_SOURCES=\
 	pypa/ast/ast.cc \
 	pypa/ast/dump.cc \
 	pypa/lexer/lexer.cc \
-	pypa/parser/dtoa.c \
 	pypa/parser/parser.cc \
 	double-conversion/src/bignum.cc \
 	double-conversion/src/bignum-dtoa.cc \

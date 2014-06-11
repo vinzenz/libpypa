@@ -248,6 +248,7 @@ PYPA_AST_EXPR(None) {};
 PYPA_AST_EXPR(Number) {
     enum Type {
         Integer,
+        Long,
         Float
     } num_type;
     union {
