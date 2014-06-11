@@ -99,6 +99,14 @@ namespace pypa {
         put_char(c1);
 
         tok.value.clear();
+        switch (c0) {
+        case '"': case '\'':
+            return get_string(tok, c0);
+        case 'r': case 'b': case 'u':
+            if(c1 == '\'' || c1 == '"')
+                return get_string(tok, next_char(), c0);
+        }
+
         if (is_ident_char(c0, true)) {
             char c = c0;
             do {
@@ -116,14 +124,6 @@ namespace pypa {
         }
         if (is_number(c0, c1, c2)) {
             return get_number(tok, c0);
-        }
-
-        switch (c0) {
-        case '"': case '\'':
-            return get_string(tok, c0);
-        case 'r': case 'b': case 'u':
-            if(c1 == '\'' || c1 == '"')
-                return get_string(tok, next_char(), c0);
         }
 
         for(auto const & delim : Delims()) {
@@ -233,6 +233,11 @@ namespace pypa {
     }
 
     TokenInfo Lexer::get_number_octal(TokenInfo & tok, char first) {
+        if(first != 'o' && first != 'O') {
+            put_char(first);
+            tok.ident = {Token::NumberInteger, TokenKind::Number, TokenClass::Literal};
+            return tok;
+        }
         tok.value.push_back(first);
         first = next_char();
         while (first >= '0' && first < '8') {
@@ -414,10 +419,12 @@ namespace pypa {
             case '\n':
                 line_++;
                 column_ = 0;
-                token_buffer_.push_back({
-                        { Token::NewLine, TokenKind::NewLine, TokenClass::Default },
-                        line_, column_,
-                        {"NewLine"}});
+                if(!continuation && level_ == 0) {
+                    token_buffer_.push_back({
+                            { Token::NewLine, TokenKind::NewLine, TokenClass::Default },
+                            line_, column_,
+                            {"NewLine"}});
+                }
                 if(!handle_indentation(continuation)) {
                     return next_char();
                 }
@@ -463,6 +470,12 @@ namespace pypa {
         }
         put_char(c);
         if(continuation || level_ != 0 || c == '#' || c == '\n' || c == '\r' || c == '\x0c') {
+            if(c == '#') {
+                // If this line is a commented line, don't emit NewLine
+                if(token_buffer_.back().ident.id() == Token::NewLine) {
+                    token_buffer_.pop_back();
+                }
+            }
             return true;
         }
 

@@ -29,26 +29,31 @@ AstPtr error_transform(T const & t) {
     return std::make_shared<T>(t);
 }
 
-void syntax_error_dbg(State & s, AstPtr ast, char const * message, int line = -1) {
-    s.errors.push({ErrorType::SyntaxError, message, top(s), ast, line, s.lexer->get_line(top(s).line)});
-    // printf("SyntaxError: %d:%d %s {%d}\n", top(s).line, top(s).column, message, line);
-    printf("  File \"%s\", line %d\n    %s\n    ", s.lexer->get_name().c_str(), s.errors.top().cur.line, s.errors.top().line.c_str());
-    for(int i = 0; i < s.errors.top().cur.column - 1; ++i) {
+void report_error(State & s) {
+    Error & e = s.errors.top();
+    printf("  File \"%s\", line %d\n    %s\n    ", s.lexer->get_name().c_str(), e.cur.line, e.line.c_str());
+    if(e.cur.column == 0) ++e.cur.column;
+    for(int i = 0; i < e.cur.column - 1; ++i) {
         printf(" ");
     }
-    printf("^\nSyntaxError: %s", message);
-    if(line != -1) {
-        printf("\n-> Reported @%d\n\n", line);
+    printf("^\n%s: %s", e.type == ErrorType::SyntaxError ? "SyntaxError" : "IndentationError", e.message.c_str());
+    if(e.detected_line != -1) {
+        printf("\n-> Reported @%s:%d in %s\n\n", e.detected_file, e.detected_line, e.detected_function);
     }
 }
 
-void indentation_error_dbg(State & s, AstPtr ast, int line = -1) {
-    s.errors.push({ErrorType::SyntaxError, "", top(s), ast, line, s.lexer->get_line(top(s).line)});
-    printf("IndentationError: %d:%d\n", top(s).line, top(s).column);
+void syntax_error_dbg(State & s, AstPtr ast, char const * message, int line = -1, char const * file = 0, char const * function = 0) {
+    s.errors.push({ErrorType::SyntaxError, message, top(s), ast, s.lexer->get_line(top(s).line), line, file ? file : "", function ? function : ""});
+    report_error(s);
 }
 
-#define syntax_error(s, AST_ITEM, msg) syntax_error_dbg(s, error_transform(AST_ITEM), msg, __LINE__)
-#define indentation_error(s, AST_ITEM) indentation_error_dbg(s, error_transform(AST_ITEM), __LINE__)
+void indentation_error_dbg(State & s, AstPtr ast, int line = -1, char const * file = 0, char const * function = 0) {
+    s.errors.push({ErrorType::IndentationError, "", top(s), ast, s.lexer->get_line(top(s).line), line, file ? file : "", function ? function : ""});
+    report_error(s);
+}
+
+#define syntax_error(s, AST_ITEM, msg) syntax_error_dbg(s, error_transform(AST_ITEM), msg, __LINE__, __FILE__, __PRETTY_FUNCTION__)
+#define indentation_error(s, AST_ITEM) indentation_error_dbg(s, error_transform(AST_ITEM), __LINE__, __FILE__, __PRETTY_FUNCTION__)
 
 
 inline int64_t base_char_to_value(char c) {
@@ -125,7 +130,7 @@ template< typename Fun >
 bool generic_binop_expr(State & s, AstExpr & ast, TokenKind op, AstBinOpType op_type, Fun fun) {
     StateGuard guard(s, ast);
     if(fun(s, ast)) {
-        if(expect(s, op)) {
+        while(expect(s, op)) {
             AstBinOpPtr bin;
             location(s, create(bin));
             bin->left = ast;
@@ -171,11 +176,26 @@ bool dotted_as_names(State & s, AstExpr & ast) {
     ast = lst;
     AstExpr dotted;
     while(dotted_as_name(s, dotted)) {
+        if(dotted->type == AstType::Alias) {
+            AstAliasPtr a = std::static_pointer_cast<AstAlias>(dotted);
+            if(!a->as_name) {
+                lst->items.push_back(a->name);
+            }
+            else {
+                lst->items.push_back(dotted);
+            }
+        }
         if(!expect(s, TokenKind::Comma)) {
             break;
         }
     }
-    return !lst->items.empty() && guard.commit();
+    if(lst->items.empty()) {
+        return false;
+    }
+    if(lst->items.size() == 1) {
+        ast = lst->items.front();
+    }
+    return  guard.commit();
 }
 
 bool import_as_name(State & s, AstExpr & ast) {
@@ -214,6 +234,10 @@ bool try_stmt(State & s, AstStmt & ast) {
     while(except_clause(s, clause)) {
         assert(clause->type == AstType::Except);
         AstExceptPtr except = std::static_pointer_cast<AstExcept>(clause);
+        if(!expect(s, TokenKind::Colon)) {
+            syntax_error(s, clause, "Expected `:`");
+            return false;
+        }
         if(!suite(s, except->body)) {
             return false;
         }
@@ -221,7 +245,7 @@ bool try_stmt(State & s, AstStmt & ast) {
     }
     // [expect(s, Token::KeywordElse) expect(s, TokenKind::Colon) suite]
     if(expect(s, Token::KeywordElse)) {
-        if(!clause) {
+        if(try_except->handlers.empty()) {
             syntax_error(s, ast, "`else` cannot follow `try` without `except` handler");
             return false;
         }
@@ -372,7 +396,7 @@ bool import_as_names(State & s, AstExpr & ast) {
             break;
         }
     }
-    return !exprs->items.empty();
+    return !exprs->items.empty() && guard.commit();
 }
 
 bool return_stmt(State & s, AstStmt & ast) {
@@ -1410,6 +1434,8 @@ bool suite(State & s, AstStmt & ast) {
         AstSuitePtr suite_;
         location(s, create(suite_));
         ast = suite_;
+        // Consume any new lines inbetween
+        while(expect(s, Token::NewLine));
         if(expect(s, Token::Indent)) {
             AstStmt stmt_;
             if(stmt(s, stmt_)) {
@@ -1652,7 +1678,7 @@ bool comparison(State & s, AstExpr & ast) {
         return false;
     }
     AstCompareOpType op;
-    if(comp_op(s, op)) {
+    while(comp_op(s, op)) {
         AstComparePtr ptr;
         location(s, create(ptr));
         ptr->left = ast;
@@ -1671,7 +1697,7 @@ bool term(State & s, AstExpr & ast) {
     // factor (( factor)*
     if(factor(s, ast)) {
         TokenKind k = kind(top(s));
-        if(expect(s, TokenKind::Star) || expect(s, TokenKind::Slash) || expect(s, TokenKind::Percent) || expect(s, TokenKind::DoubleSlash)) {
+        while(expect(s, TokenKind::Star) || expect(s, TokenKind::Slash) || expect(s, TokenKind::Percent) || expect(s, TokenKind::DoubleSlash)) {
             AstBinOpPtr bin;
             location(s, create(bin));
             bin->left = ast;
@@ -1896,14 +1922,17 @@ bool fpdef(State & s, AstExpr & ast) {
     location(s, create(ast));
     // expect(s, Token::Identifier) || expect(s, TokenKind::LeftParen) fplist expect(s, TokenKind::RightParen)
     if(!get_name(s, ast)) {
-        return false;
-    }
-    if(expect(s, TokenKind::LeftParen)) {
-        if(!fplist(s, ast)) {
-            return false;
+        if(expect(s, TokenKind::LeftParen)) {
+            if(!fplist(s, ast)) {
+                syntax_error(s, ast, "Expected parameter list");
+                return false;
+            }
+            if(!expect(s, TokenKind::RightParen)) {
+                syntax_error(s, ast, "Expected `)`");
+                return false;
+            }
         }
-        if(!expect(s, TokenKind::RightParen)) {
-            syntax_error(s, ast, "Expected `)`");
+        else {
             return false;
         }
     }
@@ -1944,11 +1973,7 @@ bool varargslist(State & s, AstArguments & ast) {
             return false;
         }
         ast.args.push_back(arg);
-    }
-
-    if(!ast.args.empty() && !expect(s, TokenKind::Comma)) {
-        syntax_error(s, ast, "Unexpected `,`");
-        return false;
+        expect(s, TokenKind::Comma);
     }
 
     if(expect(s, TokenKind::DoubleStar)) {

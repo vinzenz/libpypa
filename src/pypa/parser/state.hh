@@ -25,12 +25,14 @@ namespace {
         IndentationError
     };
     struct Error {
-        ErrorType   type;
-        String      message;
-        TokenInfo   cur;
-        AstPtr      ast;
-        int         detected_line;
-        std::string line;
+        ErrorType    type;
+        String       message;
+        TokenInfo    cur;
+        AstPtr       ast;
+        std::string  line;
+        int          detected_line;
+        char const * detected_file;
+        char const * detected_function;
     };
 
     struct State {
