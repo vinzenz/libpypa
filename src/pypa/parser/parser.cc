@@ -1028,8 +1028,8 @@ bool global_stmt(State & s, AstStmt & ast) {
             syntax_error(s, ast, "Expected identifier after `global`");
             return false;
         }
-        assert(ptr->type == AstType::Name);
-        if(ptr->type != AstType::Name) {
+        assert(item->type == AstType::Name);
+        if(item->type != AstType::Name) {
             return false;
         }
         ptr->names.push_back(std::static_pointer_cast<AstName>(item));
@@ -1038,8 +1038,8 @@ bool global_stmt(State & s, AstStmt & ast) {
                 syntax_error(s, ast, "Expected identifier after `,`");
                 return false;
             }
-            assert(ptr->type == AstType::Name);
-            if(ptr->type != AstType::Name) {
+            assert(item->type == AstType::Name);
+            if(item->type != AstType::Name) {
                 syntax_error(s, ast, "Expected identifier after `,`");
                 return false;
             }
@@ -1527,6 +1527,7 @@ bool expr_stmt(State & s, AstStmt & ast) {
                 AstAssignPtr ptr;
                 location(s, create(ptr));
                 ptr->targets = target;
+                ast = ptr;
                 while(expect(s, TokenKind::Equal)) {
                     AstExpr value;
                     if(!yield_expr(s, value) && !testlist(s, value)) {
@@ -1770,12 +1771,14 @@ bool dictorsetmaker(State & s, AstExpr & ast) {
             AstDictPtr ptr;
             location(s, create(ptr));
             ast = ptr;
-            ptr->keys.push_back(first);
-            ptr->values.push_back(second);
             if(!test(s, second)) {
                 syntax_error(s, ast, "Expected expression after `:`");
                 return false;
             }
+
+            ptr->keys.push_back(first);
+            ptr->values.push_back(second);
+
             if(is(s, Token::KeywordFor)) {
                 ptr.reset();
                 AstDictCompPtr comp;
@@ -1787,6 +1790,8 @@ bool dictorsetmaker(State & s, AstExpr & ast) {
                 // Dict Comprehension
             }
             else if(is(s, TokenKind::Comma)) {
+                first.reset();
+                second.reset();
                 // Dict definition
                 while(expect(s, TokenKind::Comma)) {
                     if(!test(s, first)) {
@@ -1802,6 +1807,8 @@ bool dictorsetmaker(State & s, AstExpr & ast) {
                     }
                     ptr->keys.push_back(first);
                     ptr->values.push_back(second);
+                    first.reset();
+                    second.reset();
                 }
             }
             else {
