@@ -52,8 +52,7 @@ class Lexer {
     pypa::FileBuf file_;
     std::string input_path_;
 
-    uint64_t line_;
-    uint64_t column_;
+    uint32_t column_;
     int level_;
     int indent_;
     std::vector<int> indent_stack_;
@@ -77,7 +76,7 @@ public:
 private:
     char skip();
     char skip_comment();
-
+    unsigned line() const { return file_.line(); }
     char next_char();
     void put_char(char c);
     TokenInfo get_string(TokenInfo & tok, char first, char prefix=0);

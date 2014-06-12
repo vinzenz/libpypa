@@ -26,12 +26,15 @@ class FileBuf {
     char buffer_[BufferSize];
     unsigned position_;
     unsigned length_;
+    unsigned line_;
     char current_;
+    bool eof_;
     bool utf8_;
 public:
     FileBuf(char const * file_path);
     ~FileBuf();
 
+    unsigned line() const { return line_; }
     char next();
     char current() const;
     bool eof() const;

@@ -40,10 +40,12 @@ namespace pypa {
     , buffer_{}
     , position_{0}
     , length_{0}
+    , line_{1}
     , current_{EOF}
+    , eof_{true}
     , utf8_{false}
     {
-        fill_buffer();
+        eof_ = !fill_buffer();
         if(length_ >= 3) {
             utf8_ = buffer_[0] == '\xEF'
                  && buffer_[1] == '\xBB'
@@ -69,11 +71,14 @@ namespace pypa {
     char FileBuf::next() {
         if(position_ >= length_) {
             if(length_ == 0 || !fill_buffer()) {
-                current_ = EOF;
+                current_ = -1;
+                eof_ = true;
             }
         }
         if (position_ < length_) {
-            current_ = buffer_[position_++];
+            eof_ = false;
+            current_ = unsigned(buffer_[position_++]);
+            if(current_ == '\n' || current_ == '\x0c') line_++;
         }
         return current_;
     }
@@ -83,7 +88,7 @@ namespace pypa {
     }
 
     bool FileBuf::eof() const {
-        return current_ == EOF;
+        return eof_;
     }
 
     bool FileBuf::fill_buffer() {

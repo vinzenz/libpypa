@@ -15,6 +15,7 @@
 #include <pypa/lexer/op.hh>
 #include <pypa/lexer/keyword.hh>
 #include <pypa/lexer/delim.hh>
+#include <stack>
 #include <cassert>
 #include <fstream>
 
@@ -34,6 +35,17 @@ namespace pypa {
         return is_digit(c)
             || (c >= 'A' && c <= 'F')
             || (c >= 'a' && c <= 'f');
+    }
+
+    inline char hex2num(char c) {
+        if(!is_hex(c)) {
+            return '\xff';
+        }
+        if(c >= '0' && c <= '9') {
+            return c - '0';
+        }
+        c = tolower(c);
+        return (c - 'a') + 10;
     }
 
     inline bool is_number(char c0, char c1, char c2) {
@@ -61,7 +73,6 @@ namespace pypa {
     Lexer::Lexer(char const * file_path)
     : file_{file_path}
     , input_path_{file_path}
-    , line_{1}
     , column_{0}
     , level_{0}
     , indent_{0}
@@ -88,10 +99,10 @@ namespace pypa {
             return tmp;
         }
         TokenInfo tok = {{
-            (c0 == EOF ? Token::End : Token::Invalid),
-            (c0 == EOF ? TokenKind::End : TokenKind::Error),
+            (file_.eof() ? Token::End : Token::Invalid),
+            (file_.eof() ? TokenKind::End : TokenKind::Error),
             TokenClass::Default},
-            line_, column_, {} };
+            line(), column_, {} };
         char c1 = next_char();
         char c2 = next_char();
         // Pushing c2 first, is on purpose, think of the order!
@@ -99,11 +110,16 @@ namespace pypa {
         put_char(c1);
 
         tok.value.clear();
+        char ctmp = 0;
         switch (c0) {
         case '"': case '\'':
             return get_string(tok, c0);
         case 'r': case 'b': case 'u':
-            if(c1 == '\'' || c1 == '"')
+            ctmp = c1;
+            if(c1 == 'r' && (c0 == 'u' || c0 == 'b')) {
+                ctmp = c2;
+            }
+            if(ctmp == '\'' || ctmp == '"')
                 return get_string(tok, next_char(), c0);
         }
 
@@ -125,6 +141,7 @@ namespace pypa {
         for(auto const & delim : Delims()) {
             if(delim.value()[0] == c0) {
                 tok.value = delim.value().c_str();
+                bool abort = false;
                 switch(c0) {
                 case '[': case '{': case '(':
                     ++level_;
@@ -132,7 +149,13 @@ namespace pypa {
                 case ']': case '}': case ')':
                     --level_;
                     break;
+                case '.':
+                    if(isdigit(c1)) {
+                        abort = true;
+                    }
+                    break;
                 }
+                if(abort) break;
                 return make_token(tok, delim.ident());
             }
         }
@@ -161,6 +184,10 @@ namespace pypa {
         int end_quote_count = 0;
         if(prefix) {
             tok.value.push_back(prefix);
+            if(first == 'b' || first == 'r') {
+                tok.value.push_back(first);
+                cur = first = next_char();
+            }
         }
         while(cur == first && quote_count < 3) {
             ++quote_count;
@@ -171,7 +198,7 @@ namespace pypa {
         if(quote_count != 2 && quote_count != 6) {
             while(end_quote_count != quote_count) {
                 cur = next_char();
-                if(cur == EOF) {
+                if(file_.eof()) {
                     return make_token(tok,
                             Token::UnterminatedStringError,
                             TokenKind::Error);
@@ -190,7 +217,6 @@ namespace pypa {
                                     TokenKind::Error);
                         }
                         if(cur == '\r') continue;
-                        line_++;
                     }
                     if (cur == '\\') {
                         tok.value.push_back(next_char());
@@ -280,7 +306,12 @@ namespace pypa {
                 tok.value.push_back(first);
             }
             while (is_digit(first = next_char()));
-            if (first != 'e' && first != 'E') {
+            if(first == 'j') {
+                tok.value.push_back(first);
+                tok.ident = {Token::NumberComplex, TokenKind::Number, TokenClass::Literal};
+                break;
+            }
+            else if (first != 'e' && first != 'E') {
                 put_char(first);
                 tok.ident = {Token::NumberFloat, TokenKind::Number, TokenClass::Literal};
                 break;
@@ -366,20 +397,20 @@ namespace pypa {
         char c = 0;
         do {
             c = next_char();
-        } while(c != EOF && c != '\n');
+        } while(!file_.eof() && c != '\n');
         return c;
     }
 
     char Lexer::skip() {
-        char c = EOF;
+        char c = -1;
         bool at_bol = false;
         bool continuation = false;
-        while((c = next_char()) != EOF) {
+        for(;;) {
+            c = next_char();
             switch(c) {
-            case EOF: return c;
             case '#':
                 c = skip_comment();
-                if(c == EOF) {
+                if(file_.eof()) {
                     return c;
                 }
                 // It should now continue with newline
@@ -388,11 +419,42 @@ namespace pypa {
             case '\\':
                 c = next_char();
                 continuation = true;
+                if(c == 'x') {
+                    put_char(c);
+                    // decode hex
+                    std::stack<char> decoded;
+                    do {
+                        c = next_char();
+                        if(c != 'x') break;
+                        char result = 0;
+                        c = next_char();
+                        if(!is_hex(c)) {
+                            put_char(c);
+                            c = 'x';
+                            break;
+                        }
+                        result = hex2num(c) << 4;
+                        char c1 = next_char();
+                        if(!is_hex(c1)) {
+                            put_char(c1);
+                            put_char(c);
+                            c = 'x';
+                            break;
+                        }
+                        result |= hex2num(c1);
+                        decoded.push(result);
+                    } while((c = next_char()) == '\\');
+
+                    while(!decoded.empty()) {
+                        put_char(decoded.top());
+                        decoded.pop();
+                    }
+                }
                 if(c == '\r') c = next_char();
                 if(c != '\n' && c != '\x0c') {
                     token_buffer_.push_back({
                             {Token::LineContinuationError, TokenKind::Error, TokenClass::Default},
-                            line_, column_, {"LineContinationError"}});
+                            line(), column_, {"LineContinationError"}});
                     return c;
                 }
                 // It should now continue with newline
@@ -401,7 +463,7 @@ namespace pypa {
             case '`':
                 token_buffer_.push_back({
                         {Token::BackQuote, TokenKind::BackQuote, TokenClass::Default},
-                        line_, column_,
+                        line(), column_,
                         {"BackQuote"}});
                 return next_char();
             case ' ':
@@ -419,12 +481,11 @@ namespace pypa {
                 break;
             case '\x0c': // Allow formfeed as \n
             case '\n':
-                line_++;
                 column_ = 0;
                 if(!continuation && level_ == 0) {
                     token_buffer_.push_back({
                             { Token::NewLine, TokenKind::NewLine, TokenClass::Default },
-                            line_, column_,
+                            line(), column_,
                             {"NewLine"}});
                 }
                 if(!handle_indentation(continuation)) {
@@ -455,7 +516,7 @@ namespace pypa {
 
     bool Lexer::handle_indentation(bool continuation) {
         int col = 0, alt_col = 0;
-        int c = 0;
+        char c = 0;
         int changes = 0;
         for(;;) {
             c = next_char();
@@ -518,10 +579,10 @@ namespace pypa {
         TokenInfo info {{ changes < 0 ? Token::Dedent : Token::Indent,
                           changes < 0 ? TokenKind::Dedent : TokenKind::Indent,
                           TokenClass::Default},
-                          line_,
+                          line(),
                           1,
                           {changes < 0 ? "Dedent" : "Indent"}};
-        info.line = line_;
+        info.line = line();
         info.column = 1;
         while(changes != 0) {
             changes += changes > 0 ? -1 : 1;
@@ -535,7 +596,7 @@ namespace pypa {
             {dedent ? Token::DedentationError : Token::IndentationError,
              TokenKind::Error,
              TokenClass::Default},
-            line_,
+            line(),
             column_,
             dedent ? "Dedentation Error" : "Indentation Error"});
         return false;
@@ -555,6 +616,6 @@ namespace pypa {
     }
 
     TokenInfo Lexer::make_invalid(char const * begin, char const * end, Token id, TokenKind kind, TokenClass cls) {
-        return { {id, kind, cls},line_, column_, std::string(begin, end) };
+        return { {id, kind, cls},line(), column_, std::string(begin, end) };
     }
 }

@@ -119,11 +119,13 @@ struct dump_visitor {
         case AstBinOpType::Div:         printf("/"); break;
         case AstBinOpType::FloorDiv:    printf("//"); break;
         case AstBinOpType::LeftShift:   printf("<<"); break;
-        case AstBinOpType::Mod:         printf("%"); break;
+        case AstBinOpType::Mod:         printf("%%"); break;
         case AstBinOpType::Mult:        printf("*"); break;
         case AstBinOpType::Power:       printf("**"); break;
         case AstBinOpType::RightShift:  printf(">>"); break;
         case AstBinOpType::Sub:         printf("-"); break;
+        default:
+            assert("No such binop" && false);
         }
     }
 

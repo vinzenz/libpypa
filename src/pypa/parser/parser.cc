@@ -69,7 +69,7 @@ bool number_from_base(int64_t base, State & s, AstNumberPtr & ast) {
     String const & value = top(s).value;
     AstNumber & result = *ast;
     pop(s);
-    result.num_type = top(s).value == "L" ? AstNumber::Long : AstNumber::Integer;
+    result.num_type = (top(s).value == "L" || top(s).value == "l") ? AstNumber::Long : AstNumber::Integer;
     unpop(s);
     result.integer = 0;
     for(auto c : value) {
@@ -472,7 +472,7 @@ bool testlist_safe(State & s, AstExpr & ast) {
     return !exprs->items.empty() && guard.commit();
 }
 
-bool testlist_comp(State & s, AstExpr & ast) {
+bool testlist_comp(State & s, AstExpr & ast, bool * last_was_comma = 0) {
     StateGuard guard(s, ast);
     AstExpressionsPtr exprs;
     location(s, create(exprs));
@@ -498,6 +498,7 @@ bool testlist_comp(State & s, AstExpr & ast) {
                 break;
             }
             if(!test(s, tmp)) {
+                if(last_was_comma) *last_was_comma = true;
                 break;
             }
             exprs->items.push_back(tmp);
@@ -687,20 +688,27 @@ bool atom(State & s, AstExpr & ast) {
     // expect(s, TokenKind::LeftParen) [yield_expr||testlist_comp] expect(s, TokenKind::RightParen)
     if(expect(s, TokenKind::LeftParen)) {
         // Either or, both optional
-        if(testlist_comp(s, ast)) {
+        bool last_was_comma = false;
+        if(testlist_comp(s, ast, &last_was_comma)) {
             if(ast->type != AstType::Generator) {
                 AstTuplePtr ptr;
                 location(s, create(ptr));
                 if(ast->type == AstType::Expressions) {
                     AstExpressions & e = *static_cast<AstExpressions*>(ast.get());
-                    for(auto item : e.items) {
-                        ptr->elements.push_back(item);
+                    if(!last_was_comma && e.items.size() == 1) {
+                        ast = e.items.front();
+                    }
+                    else {
+                        for(auto item : e.items) {
+                            ptr->elements.push_back(item);
+                        }
+                        ast = ptr;
                     }
                 }
                 else {
                     ptr->elements.push_back(ast);
+                    ast = ptr;
                 }
-                ast = ptr;
             }
         }
         else if(!yield_expr(s, ast)) {
@@ -785,13 +793,14 @@ bool atom(State & s, AstExpr & ast) {
             expect(s, Token::String);
         }
     }
+    /*
     else if(is(s, Token::KeywordTrue) || is(s, Token::KeywordFalse)) {
         AstBoolPtr ptr;
         location(s, create(ptr));
         ast = ptr;
         ptr->value = is(s, Token::KeywordTrue);
         expect(s, Token::KeywordTrue) || expect(s, Token::KeywordFalse);
-    }
+    }*/
     else if(is(s, Token::KeywordNone)) {
         AstNonePtr ptr;
         location(s, create(ptr));
@@ -890,19 +899,25 @@ bool single_input(State & s, AstStmt & ast) {
 
 bool shift_expr(State & s, AstExpr & ast) {
     StateGuard guard(s, ast);
-    AstBinOpPtr bin;
-    location(s, create(bin));
-    ast = bin;
     // arith_expr ((expect(s, TokenKind::LeftShift)||expect(s, TokenKind::RightShift)) arith_expr)*
-    if(!arith_expr(s, bin->left)) {
+    if(!arith_expr(s, ast)) {
         return false;
     }
-    if(!(expect(s, TokenKind::LeftShift) || expect(s, TokenKind::RightShift))) {
-        ast = bin->left;
-    }
-    else if(!arith_expr(s, bin->right)){
-        syntax_error(s, ast, "Expected expression");
-        return false;
+    while(is(s, TokenKind::LeftShift) || is(s, TokenKind::RightShift)) {
+        AstBinOpPtr bin;
+        location(s, create(bin));
+        bin->left = ast;
+        ast = bin;
+        if(expect(s, TokenKind::LeftShift)) {
+            bin->op = AstBinOpType::LeftShift;
+        }
+        else if(expect(s, TokenKind::RightShift)) {
+            bin->op = AstBinOpType::RightShift;
+        }
+        if(!arith_expr(s, bin->right)){
+            syntax_error(s, ast, "Expected expression");
+            return false;
+        }
     }
     return guard.commit();
 }
@@ -946,7 +961,7 @@ bool simple_stmt(State & s, AstStmt & ast) {
     if(suite_->items.size() == 1) {
         ast = tmp;
     }
-    if(!expect(s, TokenKind::NewLine)) {
+    if(!expect(s, TokenKind::NewLine)/* && !is(s, Token::End)*/) {
         syntax_error(s, ast, "Expected new line after statement");
         return false;
     }
@@ -1213,6 +1228,11 @@ bool print_stmt(State & s, AstStmt & ast) {
     // Consume 'print'
     pop(s);
 
+    if(is(s, TokenKind::LeftParen)) {
+        // Normal function call
+        return false;
+    }
+
     if(expect(s, TokenKind::RightShift)) {
         if(!test(s, ptr->destination)) {
             syntax_error(s, ast, "Expected expression after `>>`");
@@ -1418,7 +1438,7 @@ bool for_stmt(State & s, AstStmt & ast) {
 }
 
 bool and_test(State & s, AstExpr & ast) {
-    // not_test (expect(s, ) not_test)*
+    // not_test (expect(s, Token::KeywordAnd) not_test)*
     return generic_boolop_expr(s, ast, Token::KeywordAnd, AstBoolOpType::And, not_test);
 }
 
@@ -1930,7 +1950,7 @@ bool fplist(State & s, AstExpr & ast) {
     AstExpr temp;
     if(fpdef(s, temp)) {
         exprs->items.push_back(temp);
-        while(is(s, TokenKind::Comma)) {
+        while(expect(s, TokenKind::Comma)) {
             if(!fpdef(s, temp)) {
                 break;
             }
