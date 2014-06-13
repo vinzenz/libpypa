@@ -62,7 +62,7 @@ preliminary `AST` from the input.
 <a name="structure-ast">
 ### AST
 The AST contains the definition of all syntax elements in the code. The main
-parst of the definition are in `pypa/ast/ast.hh` which makes heavily use of
+parts of the definition are in `pypa/ast/ast.hh` which makes heavily use of
 preprocessor macros to define typedefs, mappings for compile time type lookups
 by AstType (enum class), and an implementation for a switch based visitor.
 
