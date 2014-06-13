@@ -77,10 +77,49 @@ enum class AstType {
 template<AstType TypeID>
 struct AstTypeByID;
 
+template<typename T>
+struct AstIDByType;
+
+template<typename T>
+struct AstIDByType< std::shared_ptr<T> > : AstIDByType<T>  {};
+
+template<typename T>
+struct AstIDByType< T const > : AstIDByType<T> {};
+
 template<AstType TypeID>
 struct AstTypePtrByID {
     typedef std::shared_ptr<typename AstTypeByID<TypeID>::Type> Type;
 };
+
+template<AstType>
+struct ast_member_visit;
+
+template<typename T>
+struct ast_member_dump;
+
+struct ast_member_dump_revisit {
+    int depth_;
+    ast_member_dump_revisit(int depth) : depth_(depth) {}
+    template< typename T >
+    void operator() ( T const & v ) const {
+        ast_member_dump<T>::dump(depth_, v);
+    }
+};
+
+struct Ast;
+namespace detail {
+    void visit_dump_internal(int depth, Ast const & v);
+
+    template< typename T, typename V, typename F>
+    void apply_member(T & t, V T::*member, F f) {
+        f(t.*member);
+    }
+
+    template< typename T, typename V, typename F>
+    void apply_member(std::shared_ptr<T> t, V T::*member, F f) {
+        f((*t).*member);
+    }
+}
 
 }
 

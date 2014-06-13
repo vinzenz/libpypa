@@ -95,7 +95,7 @@ PYPA_AST_EXPR(BoolOp) {
     AstBoolOpType op;
     AstExprList   values;
 };
-PYPA_AST_MEMBERS2(BinOp, op, values);
+PYPA_AST_MEMBERS2(BoolOp, op, values);
 
 PYPA_AST_STMT(Break) {};
 PYPA_AST_MEMBERS0(Break);
@@ -111,7 +111,7 @@ PYPA_AST_STMT(ClassDef) {
     AstExpr bases;
     AstStmt body;
 };
-PYPA_AST_MEMBERS3(BinOp, name, bases, body);
+PYPA_AST_MEMBERS3(ClassDef, name, bases, body);
 
 PYPA_AST_STMT(Continue) {};
 PYPA_AST_MEMBERS0(Continue);
@@ -169,7 +169,7 @@ PYPA_AST_EXPR(DictComp) {
     AstExpr value;
     AstExpr generators;
 };
-PYPA_AST_MEMBERS3(DictComp, key, value, generator);
+PYPA_AST_MEMBERS3(DictComp, key, value, generators);
 
 PYPA_AST_TYPE_DECL_SLICE_KIND(Ellipsis) {};
 DEF_AST_TYPE_BY_ID1(Ellipsis);
@@ -292,6 +292,7 @@ PYPA_AST_EXPR(ListComp) {
 PYPA_AST_MEMBERS2(ListComp, element, generators);
 
 PYPA_AST_EXPR(None) {};
+PYPA_AST_MEMBERS0(None);
 
 PYPA_AST_EXPR(Number) {
     enum Type {
@@ -372,7 +373,7 @@ PYPA_AST_EXPR(Subscript) {
     AstSliceKindPtr slice;
     AstContext      context;
 };
-PYPA_AST_MEMBERS3(Slice, value, slice, context);
+PYPA_AST_MEMBERS3(Subscript, value, slice, context);
 
 PYPA_AST_STMT(TryExcept) {
     AstStmt         body;

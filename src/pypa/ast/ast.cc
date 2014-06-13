@@ -12,3 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 #include "ast.hh"
+#include "visitor.hh"
+namespace pypa {
+    namespace detail {
+        void visit_dump_internal(int depth, Ast const & value) {
+            pypa::visit(ast_member_dump_revisit(depth), value);
+        }
+    }
+}

@@ -22,3 +22,4 @@ src/pypa/parser/state.hh
 src/pypa/parser/apply.hh
 src/pypa/parser/parser2.cc
 src/pypa/parser/parser_fwd.hh
+src/pypa/ast/tree_walker.hh

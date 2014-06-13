@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 #include <pypa/ast/visitor.hh>
+#include <pypa/ast/tree_walker.hh>
 #include <cassert>
 
 namespace pypa {
@@ -459,8 +460,25 @@ struct dump_visitor {
     }
 };
 
+struct walk_visitor {
+    template< typename T,
+              typename std::enable_if<std::is_base_of<Ast, T>::value>::type* = nullptr>
+    void operator()(T & t) {
+        printf("Visited: %s[%d] %p\n", AstIDByType<T>::name(), int(AstIDByType<T>::Id), &t);
+    }
+
+    template< typename T,
+              typename std::enable_if<!std::is_base_of<Ast, T>::value>::type* = nullptr>
+    void operator()(T & t) {
+        //printf("Visited something else... %s\n", __PRETTY_FUNCTION__);
+    }
+};
+
 void dump(AstPtr p) {
     visit(dump_visitor(), *p);
+    if(p) {
+        pypa::detail::visit_dump_internal(0, *p);
+    }
 }
 
 }
