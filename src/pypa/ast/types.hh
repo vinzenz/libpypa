@@ -23,10 +23,23 @@ typedef std::string String;
 typedef std::vector<String> StringList;
 
 enum class AstContext {
-    Load = 1, Store = 2, Del = 3, AugLoad = 4, AugStore = 5, Param = 6
+    Undefined = 0, Load = 1, Store = 2, Del = 3, AugLoad = 4, AugStore = 5, Param = 6
 };
+inline char const * to_string(AstContext o) {
+    switch(o) {
+    case AstContext::Undefined: return "UNDEFINED";
+    case AstContext::Load:      return "Load";
+    case AstContext::Store:     return "Store";
+    case AstContext::Del:       return "Del";
+    case AstContext::AugLoad:   return "AugLoad";
+    case AstContext::AugStore:  return "AugStore";
+    case AstContext::Param:     return "Param";
+    }
+    return "UNKNOWN AstContext";
+}
 
 enum class AstBinOpType {
+    Undefined,
     Add,
     BitAnd,
     BitOr,
@@ -40,20 +53,59 @@ enum class AstBinOpType {
     RightShift,
     Sub,
 };
+inline char const * to_string(AstBinOpType o) {
+    switch(o) {
+    case AstBinOpType::Undefined:   return "UNDEFINED";
+    case AstBinOpType::Add:         return "+";
+    case AstBinOpType::BitAnd:      return "&";
+    case AstBinOpType::BitOr:       return "|";
+    case AstBinOpType::BitXor:      return "^";
+    case AstBinOpType::Div:         return "/";
+    case AstBinOpType::FloorDiv:    return "//";
+    case AstBinOpType::LeftShift:   return "<<";
+    case AstBinOpType::Mod:         return "%";
+    case AstBinOpType::Mult:        return "*";
+    case AstBinOpType::Power:       return "**";
+    case AstBinOpType::RightShift:  return ">>";
+    case AstBinOpType::Sub:         return "-";
+    }
+    return "UNKNOWN AstBinOpType";
+}
 
 enum class AstUnaryOpType {
+    Undefined,
     Add,
     Invert,
     Not,
     Sub,
 };
+inline char const * to_string(AstUnaryOpType o) {
+    switch(o) {
+    case AstUnaryOpType::Undefined: return "UNDEFINED";
+    case AstUnaryOpType::Add:       return "+";
+    case AstUnaryOpType::Invert:    return "~";
+    case AstUnaryOpType::Not:       return "not";
+    case AstUnaryOpType::Sub:       return "-";
+    }
+    return "UNKNOWN AstUnaryOpType";
+}
 
 enum class AstBoolOpType {
+    Undefined,
     And,
     Or
 };
+inline char const * to_string(AstBoolOpType o) {
+    switch(o) {
+    case AstBoolOpType::Undefined:  return "UNDEFINED";
+    case AstBoolOpType::And:        return "and";
+    case AstBoolOpType::Or:         return "or";
+    }
+    return "UNKNOWN AstBoolOpType";
+}
 
 enum class AstCompareOpType {
+    Undefined,
     Equals,
     In,
     Is,
@@ -65,6 +117,23 @@ enum class AstCompareOpType {
     NotEqual,
     NotIn,
 };
+
+inline char const * to_string(AstCompareOpType o) {
+    switch(o) {
+    case AstCompareOpType::Undefined:   return "UNDEFINED";
+    case AstCompareOpType::Equals:      return "==";
+    case AstCompareOpType::In:          return "in";
+    case AstCompareOpType::Is:          return "is";
+    case AstCompareOpType::IsNot:       return "is not";
+    case AstCompareOpType::Less:        return "<";
+    case AstCompareOpType::LessEqual:   return "<=";
+    case AstCompareOpType::More:        return ">";
+    case AstCompareOpType::MoreEqual:   return ">=";
+    case AstCompareOpType::NotEqual:    return "!=";
+    case AstCompareOpType::NotIn:       return "not in";
+    }
+    return "UNKNOWN AstCompareOpType";
+}
 
 enum class AstType {
     Invalid = -1,
