@@ -134,6 +134,17 @@ namespace {
         a.column = top(s).column;
     }
 
+    void clone_location(Ast & source, Ast & target) {
+        target.column = source.column;
+        target.line = source.line;
+    }
+
+    void clone_location(AstPtr source, AstPtr target) {
+        if(source && target) {
+            clone_location(*source, *target);
+        }
+    }
+
     bool is(TokenInfo const & info, Token tok) {
         return token(info) == tok;
     }
