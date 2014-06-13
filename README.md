@@ -4,7 +4,7 @@
  - [Motivation](#introduction-motivation)
  - [Goal](#introduction-goal)
 - [Example](#example)
-- [Error Reporting(#error-reporting)
+- [Error Reporting](#error-reporting)
 - [Requirements](#requirements)
 - [Structure](#structure)
  - [Lexer](#structure-lexer)
