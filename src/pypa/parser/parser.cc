@@ -13,8 +13,9 @@
 // limitations under the License.
 #include  <pypa/parser/apply.hh>
 #include <pypa/parser/parser_fwd.hh>
-#include <cassert>
 #include <double-conversion/src/double-conversion.h>
+#include <pypa/ast/context_assign.hh>
+#include <cassert>
 
 namespace pypa {
 
@@ -379,9 +380,7 @@ bool testlist1(State & s, AstExpr & ast) {
     }
     if(is(s, TokenKind::Comma)) {
         AstExpressionsPtr exprs;
-        create(exprs);
-        exprs->line = ast->line;
-        exprs->column = ast->column;
+        clone_location(ast, create(exprs));
         ast = exprs;
         while(expect(s, TokenKind::Comma)) {
             AstExpr temp;
@@ -657,7 +656,7 @@ bool atom(State & s, AstExpr & ast) {
     }
     // ||expect(s, TokenKind::LeftBracket) [listmaker] expect(s, TokenKind::RightBracket)
     else if(expect(s, TokenKind::LeftBracket)) {
-        if(!listmaker(s, ast)) {
+        if(!listmaker(s, ast) || !ast) {
             AstListPtr ptr;
             location(s, create(ptr));
             ast = ptr;
@@ -806,6 +805,18 @@ bool parameters(State & s, AstArguments & ast) {
         syntax_error(s, ast, "Expected `)`");
         return false;
     }
+
+    for(auto & a : ast.args) {
+        visit(context_assign{AstContext::Param}, a);
+    }
+    for(auto & a : ast.arguments) {
+        visit(context_assign{AstContext::Param}, a);
+    }
+    for(auto & d : ast.defaults) {
+        visit(context_assign{AstContext::Load}, d);
+    }
+    visit(context_assign{AstContext::Param}, ast.kwargs);
+
     return guard.commit();
 }
 
@@ -866,6 +877,18 @@ bool arglist(State & s, AstArguments & ast) {
             return false;
         }
     }
+
+    for(auto & a : ast.args) {
+        visit(context_assign{AstContext::Load}, a);
+    }
+    for(auto & a : ast.arguments) {
+        visit(context_assign{AstContext::Load}, a);
+    }
+    for(auto & d : ast.keywords) {
+        visit(context_assign{AstContext::Undefined}, d);
+    }
+    visit(context_assign{AstContext::Load}, ast.kwargs);
+
     return guard.commit();
 }
 
@@ -1116,9 +1139,7 @@ bool subscript(State & s, AstSliceKindPtr & ast) {
         test(s, index->value);
         if(expect(s, TokenKind::Colon)) {
             AstSlicePtr slice;
-            location(s, create(slice));
-            slice->line = index->line;
-            slice->column = index->column;
+            clone_location(index, create(slice));
             slice->lower = index->value;
             test(s, slice->upper);
             sliceop(s, slice->step);
@@ -1346,6 +1367,7 @@ bool classdef(State & s, AstStmt & ast) {
         syntax_error(s, ast, "Expected identifier after `class`");
         return false;
     }
+    visit(context_assign{AstContext::Store}, ptr->name);
     if(expect(s, TokenKind::LeftParen)) {
         testlist(s, ptr->bases);
         if(!expect(s, TokenKind::RightParen)) {
@@ -1502,6 +1524,18 @@ bool suite(State & s, AstStmt & ast) {
                     suite_->items.push_back(stmt_);
                     stmt_.reset();
                 }
+                if(s.options.docstrings && suite_->items.front()) {
+                    if(suite_->items.front()->type == AstType::ExpressionStatement) {
+                        AstExpressionStatementPtr exprstmt = std::static_pointer_cast<AstExpressionStatement>(suite_->items.front());
+                        if(exprstmt->expr && exprstmt->expr->type == AstType::Str) {
+                            AstStrPtr txt = std::static_pointer_cast<AstStr>(exprstmt->expr);
+                            AstDocStringPtr ptr;
+                            clone_location(txt, create(ptr));
+                            ptr->doc = txt->value;
+                            suite_->items[0] = ptr;
+                        }
+                    }
+                }
                 if(!expect(s, Token::Dedent)) {
                     indentation_error(s, ast);
                     return false;
@@ -1529,6 +1563,7 @@ bool funcdef(State & s, AstStmt & ast) {
         syntax_error(s, ast, "Expected identifier after `def`");
         return false;
     }
+    visit(context_assign{AstContext::Store}, ptr->name);
     if(!parameters(s, ptr->args)) {
         syntax_error(s, ast, "Expected parameter declaration");
         return false;
@@ -1569,6 +1604,16 @@ bool expr_stmt(State & s, AstStmt & ast) {
         ptr->expr = target;
         AstBinOpType op{};
         if(augassign(s, op)) {
+            switch(target->type) {
+            case AstType::Name:
+            case AstType::Attribute:
+            case AstType::Subscript:
+                break;
+            default:
+                syntax_error(s, target, "Illegal expression for augmented assignment");
+                return false;
+            }
+
             AstAugAssignPtr ptr;
             location(s, create(ptr));
             ast = ptr;
@@ -1578,6 +1623,8 @@ bool expr_stmt(State & s, AstStmt & ast) {
                 syntax_error(s, ast, "Expected expression after augmented assignment operator");
                 return false;
             }
+            visit(context_assign{AstContext::AugStore}, target);
+            visit(context_assign{AstContext::AugLoad}, ptr->value);
         }
         else {
             if(is(s, TokenKind::Equal)) {
@@ -1591,6 +1638,8 @@ bool expr_stmt(State & s, AstStmt & ast) {
                         syntax_error(s, ast, "Expected expression after assignment operator");
                         return false;
                     }
+                    visit(context_assign{AstContext::Store}, target);
+                    visit(context_assign{AstContext::Load}, value);
                     ptr->value.items.push_back(value);
                 }
             }
@@ -1646,10 +1695,11 @@ bool decorator(State & s, AstExpr & ast) {
     if(!expect(s, TokenKind::At)) {
         return false;
     }
-    if(!dotted_as_name(s, ast)) {
+    if(!dotted_as_name(s, ptr->name)) {
         syntax_error(s, ast, "Expected identifier after `@`");
         return false;
     }
+    visit(context_assign{AstContext::Load}, ptr->name);
     if(expect(s, TokenKind::LeftParen)) {
         arglist(s, ptr->arguments);
         if(!expect(s, TokenKind::RightParen)) {
@@ -1927,6 +1977,7 @@ bool del_stmt(State & s, AstStmt & ast) {
         syntax_error(s, ast, "Expected expression(s) after `del`");
         return false;
     }
+    visit(context_assign{AstContext::Del}, del->targets);
     return guard.commit();
 }
 
@@ -2099,6 +2150,10 @@ bool trailer(State & s, AstExpr & ast, AstExpr target) {
         if(!get_name(s, ptr->attribute)) {
             syntax_error(s, ast, "Expected identifier after `.`");
             return false;
+        }
+        else {
+            assert(target);
+            visit(context_assign{AstContext::Load}, target);
         }
     }
     else {
