@@ -4,6 +4,7 @@
  - [Motivation](#introduction-motivation)
  - [Goal](#introduction-goal)
 - [Example](#example)
+- [Error Reporting(#error-reporting)
 - [Requirements](#requirements)
 - [Structure](#structure)
  - [Lexer](#structure-lexer)
@@ -96,6 +97,41 @@ And here the output of the test parser:
                         ]
                 ]
 
+<a name="error-reporting">
+## Error Reporting
+The parser supports also SyntaxError and IndentionError reporting:
+
+Let's take a look at this file `syntax_error.py` which clearly has a
+syntax error:
+    #! /usr/bin/env python
+    # -*- coding: utf-8 -*-
+    """
+        Syntax error example
+    """
+
+    print x y z
+
+This is the output of the test parser:
+
+    $./parser-test syntax_error.py
+      File "syntax_error.py", line 7
+        print x y z
+                ^
+    SyntaxError: Expected new line after statement
+    -> Reported @pypa/parser/parser.cc:944 in bool pypa::simple_stmt(pypa::{anonymous}::State&, pypa::AstStmt&)
+
+    Parsing failed
+
+And this of cpython 2.7:
+
+    $ python syntax_error.py
+      File "syntax_error.py", line 7
+        print x y z
+                ^
+    SyntaxError: invalid syntax
+
+**libpypa** uses different error messages than python, however in the hopes that
+that would increase the clarity.
 
 <a name="requirements">
 ## Requirements
