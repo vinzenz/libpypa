@@ -123,11 +123,6 @@ PYPA_AST_EXPR(Compare) {
 };
 PYPA_AST_MEMBERS3(Compare, left, op, right);
 
-PYPA_AST_EXPR(Complex) {
-    String complex;
-};
-PYPA_AST_MEMBERS1(Complex, complex);
-
 PYPA_AST_EXPR(Comprehension) {
     AstExpr target;
     AstExpr iter;
@@ -170,6 +165,9 @@ PYPA_AST_EXPR(DictComp) {
     AstExpr generators;
 };
 PYPA_AST_MEMBERS3(DictComp, key, value, generators);
+
+PYPA_AST_EXPR(EllipsisObject) {};
+PYPA_AST_MEMBERS0(EllipsisObject);
 
 PYPA_AST_TYPE_DECL_SLICE_KIND(Ellipsis) {};
 DEF_AST_TYPE_BY_ID1(Ellipsis);
@@ -307,6 +305,13 @@ PYPA_AST_EXPR(Number) {
     };
 };
 PYPA_AST_MEMBERS2(Number, num_type, data);
+
+
+PYPA_AST_EXPR(Complex) {
+    AstNumberPtr real;
+    String imag;
+};
+PYPA_AST_MEMBERS2(Complex, real, imag);
 
 PYPA_AST_TYPE_DECL_DERIVED(Module) {
     AstSuitePtr body;

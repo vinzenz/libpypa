@@ -149,7 +149,7 @@ namespace pypa {
                 case ']': case '}': case ')':
                     --level_;
                     break;
-                case '.':
+                case '.': case '-': case '+':
                     if(isdigit(c1)) {
                         abort = true;
                     }
@@ -324,7 +324,12 @@ namespace pypa {
                 do {
                     tok.value.push_back(first);
                 } while (is_digit(first = next_char()));
-                put_char(first);
+                if(first == 'j' || first == 'J') {
+                    tok.ident = {Token::NumberComplex, TokenKind::Number, TokenClass::Literal};
+                }
+                else {
+                    put_char(first);
+                }
             }
             else {
                 put_char(first);
@@ -355,6 +360,10 @@ namespace pypa {
 
     TokenInfo Lexer::get_number(TokenInfo & tok, char first) {
         tok.value.clear();
+        if(first == '-') {
+            tok.value.push_back(first);
+            first = next_char();
+        }
         if (first == '0') {
             tok.value.push_back(first);
             char c1 = next_char();

@@ -42,6 +42,7 @@ namespace {
         std::stack<std::size_t> savepoints;
         TokenInfo               tok_cur;
         std::stack<Error>       errors;
+        ParserOptions           options;
     };
 
     TokenInfo pop(State & s) {

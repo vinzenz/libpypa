@@ -24,8 +24,10 @@ int main(int argc, char const ** argv) {
     }
     pypa::AstModulePtr ast;
     pypa::Parser parser;
+    pypa::ParserOptions options;
+    options.python3allowed = true;
     pypa::Lexer lexer(argv[1]);
-    if(parser.parse(lexer, ast)) {
+    if(parser.parse(lexer, ast, options)) {
         printf("Parsing successfull\n");
         dump(ast);
     }

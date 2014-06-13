@@ -19,9 +19,19 @@
 
 namespace pypa {
 
+struct ParserOptions {
+    ParserOptions()
+    : python3only(false)
+    , python3allowed(false)
+    {}
+
+    bool python3only;
+    bool python3allowed;
+};
+
 class Parser {
 public:
-    bool parse(Lexer & lexer, AstModulePtr & ast);
+    bool parse(Lexer & lexer, AstModulePtr & ast, ParserOptions options = ParserOptions());
 };
 
 }

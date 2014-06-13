@@ -767,7 +767,8 @@ bool atom(State & s, AstExpr & ast) {
         if(is(s, Token::NumberComplex)) {
             AstComplexPtr ptr;
             location(s, create(ptr));
-            if(!consume_value(s, Token::NumberComplex, ptr->complex)) {
+            ast = ptr;
+            if(!consume_value(s, Token::NumberComplex, ptr->imag)) {
                 assert("This should not happen at this point" && false);
                 return false;
             }
@@ -778,6 +779,29 @@ bool atom(State & s, AstExpr & ast) {
                 return false;
             }
             ast = ptr;
+            if(is(s, TokenKind::Plus) || is(s, Token::NumberComplex)) {
+                bool plus = false;
+                if(expect(s, TokenKind::Plus)) {
+                    plus = true;
+                }
+                if(!is(s, Token::NumberComplex)) {
+                    unpop(s);
+                }
+                else {
+                    AstComplexPtr cplx;
+                    location(s, create(cplx));
+                    ast = cplx;
+                    cplx->real = ptr;
+                    if(!consume_value(s, Token::NumberComplex, cplx->imag)) {
+                        assert("This should not happen at this point" && false);
+                        return false;
+                    }
+                    if(plus) {
+                        cplx->imag = "+" + cplx->imag;
+                    }
+                    ast = cplx;
+                }
+            }
         }
     }
     // || STRING+
@@ -806,6 +830,24 @@ bool atom(State & s, AstExpr & ast) {
         location(s, create(ptr));
         ast = ptr;
         expect(s, Token::KeywordNone);
+    }
+    else if((s.options.python3allowed || s.options.python3only) && is(s, TokenKind::Dot)) {
+        expect(s, TokenKind::Dot);
+        if(expect(s, TokenKind::Dot)) {
+            if(expect(s, TokenKind::Dot)) {
+                AstEllipsisObjectPtr ptr;
+                location(s, create(ptr));
+                ast = ptr;
+            }
+            else {
+                unpop(s); unpop(s);
+                return false;
+            }
+        }
+        else {
+            unpop(s);
+            return false;
+        }
     }
     else {
         return false;
@@ -1013,7 +1055,45 @@ bool factor(State & s, AstExpr & ast) {
         else if(expect(s, TokenKind::Tilde)) {
             unary->op = AstUnaryOpType::Invert;
         }
-        return factor(s, unary->operand) && guard.commit();
+        if(factor(s, unary->operand)) {
+            // Translating (-1) immediately to -1
+            if(unary->operand && unary->op == AstUnaryOpType::Sub) {
+                if(unary->operand->type == AstType::Number) {
+                    AstNumberPtr p = std::static_pointer_cast<AstNumber>(unary->operand);
+                    switch(p->num_type) {
+                    case AstNumber::Float:
+                        p->floating *= -1.;
+                        break;
+                    case AstNumber::Integer:
+                    case AstNumber::Long:
+                        p->integer *= -1;
+                        break;
+                    }
+                    ast = p;
+                }
+                if(unary->operand->type == AstType::Complex) {
+                    AstComplexPtr p = std::static_pointer_cast<AstComplex>(unary->operand);
+                    if(p->real) {
+                        switch(p->real->num_type) {
+                        case AstNumber::Float:
+                            p->real->floating *= -1.;
+                            break;
+                        case AstNumber::Integer:
+                        case AstNumber::Long:
+                            p->real->integer *= -1;
+                            break;
+                        }
+                        ast = p;
+                    }
+                    else {
+                        p->imag = '-' + p->imag;
+                        ast = p;
+                    }
+                }
+            }
+            return guard.commit();
+        }
+        return false;
     }
     return power(s, ast) && guard.commit();
 }
@@ -1230,6 +1310,10 @@ bool print_stmt(State & s, AstStmt & ast) {
 
     if(is(s, TokenKind::LeftParen)) {
         // Normal function call
+        return false;
+    }
+
+    if(s.options.python3only) { // Unsupported
         return false;
     }
 
@@ -2131,6 +2215,18 @@ bool arith_expr(State & s, AstExpr & ast) {
             syntax_error(s, ast, "Expected expression after operator");
             return false;
         }
+        // Translating Number (+|-) Complex => Complex instead of BinOp
+        if(ptr->left && ptr->left->type == AstType::Number) {
+            if(ptr->right && ptr->right->type == AstType::Complex) {
+                AstNumberPtr real = std::static_pointer_cast<AstNumber>(ptr->left);
+                AstComplexPtr p = std::static_pointer_cast<AstComplex>(ptr->right);
+                if(!p->real && !p->imag.empty() && p->imag[0] != '-' && p->imag[0] != '+') {
+                    p->real = real;
+                    p->imag = ((ptr->op == AstBinOpType::Sub) ? '-' : '+') + p->imag;
+                    ast = p;
+                }
+            }
+        }
     }
     return guard.commit();
 }
@@ -2241,8 +2337,8 @@ bool yield_stmt(State & s, AstStmt & ast) {
 }
 
 
-bool Parser::parse(Lexer & lexer, AstModulePtr & ast) {
-    State state{&lexer, {}, {}, {}, lexer.next()};
+bool Parser::parse(Lexer & lexer, AstModulePtr & ast, ParserOptions options /*= ParserOptions()*/) {
+    State state{&lexer, {}, {}, {}, lexer.next(), {}, options};
     return file_input(state, ast);
 }
 
