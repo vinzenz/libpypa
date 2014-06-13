@@ -16,11 +16,13 @@
 
 #include <pypa/ast/ast.hh>
 #include <type_traits>
+#include <cassert>
 
 namespace pypa {
 
 template<typename F>
 inline void visit(F visitor, AstPtr v) {
+    if(!v) return;
     switch(v->type) {
 #undef PYPA_AST_TYPE
 #define PYPA_AST_TYPE(X) case AstType::X: visitor(std::static_pointer_cast<typename AstTypeByID<AstType::X>::Type>(v)); break;
@@ -31,6 +33,7 @@ inline void visit(F visitor, AstPtr v) {
 
 template<typename R, typename F>
 inline R visit(F visitor, AstPtr v) {
+    if(!v) { assert("Visit called with null pointer" && false); return R(); }
     switch(v->type) {
 #undef PYPA_AST_TYPE
 #define PYPA_AST_TYPE(X) case AstType::X: return visitor(std::static_pointer_cast<typename AstTypeByID<AstType::X>::Type>(v));
