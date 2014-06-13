@@ -23,10 +23,12 @@ struct ParserOptions {
     ParserOptions()
     : python3only(false)
     , python3allowed(false)
+    , docstrings(true)
     {}
 
     bool python3only;
     bool python3allowed;
+    bool docstrings;
 };
 
 class Parser {
