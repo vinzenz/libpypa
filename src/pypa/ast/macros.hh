@@ -73,13 +73,13 @@
         }                                                                           \
         static void dump(int depth, Ast##TYPEID const & t) {                        \
             printf("[%s]\n", AstIDByType<Ast##TYPEID>::name());                     \
-            print_padding(depth);                                                   \
 
 #define PYPA_AST_MEMBER_DUMP_IMPL_END(TYPEID)                                       \
         }                                                                           \
         template< typename MemberType >                                             \
         static void dump_member(int depth, Ast##TYPEID const & t, char const * name, MemberType const Ast##TYPEID::*m) { \
-                printf("  - %s:", name);                                            \
+                print_padding(depth+4);                                             \
+                printf("  - %s: ", name);                                           \
                 dump_member_value(depth + 4, t.*m);                                 \
         }                                                                           \
         template< typename T >                                                      \
@@ -89,13 +89,18 @@
         }                                                                           \
         template< typename T >                                                      \
         static void dump_member_value(int depth, std::vector<T> const & v) {        \
-            printf("[\n");                                                          \
-            for(auto const & e : v) {                                               \
-                print_padding(depth+4);                                             \
-                dump_member_value(depth+4, e);                                      \
+            if(v.empty()) {                                                         \
+                printf("[]\n");                                                     \
             }                                                                       \
-            print_padding(depth);                                                   \
-            printf("]\n");                                                          \
+            else {                                                                  \
+                printf("[");                                                        \
+                for(auto const & e : v) {                                           \
+                    print_padding(depth+4);                                         \
+                    dump_member_value(depth+4, e);                                  \
+                }                                                                   \
+                print_padding(depth);                                               \
+                printf("]\n");                                                      \
+            }                                                                       \
         }                                                                           \
         static void dump_member_value(int depth, Ast const & v) {                   \
             printf("\n");                                                           \
@@ -103,31 +108,31 @@
             pypa::detail::visit_dump_internal(depth, v);                            \
         }                                                                           \
         static void dump_member_value(int depth, String const & v) {                \
-            printf("%s", v.c_str());                                                \
+            printf("%s\n", v.c_str());                                              \
         }                                                                           \
         static void dump_member_value(int depth, char const * v) {                  \
-            printf("RAW BUFFER: %p", v);                                            \
+            printf("RAW BUFFER: %p\n", v);                                          \
         }                                                                           \
         static void dump_member_value(int depth, bool v) {                          \
-            printf("%s", v ? "True" : "False");                                     \
+            printf("%s\n", v ? "True" : "False");                                   \
         }                                                                           \
         static void dump_member_value(int depth, int const & v) {                   \
-            printf("%d", int(v));                                                   \
+            printf("%d\n", int(v));                                                 \
         }                                                                           \
         static void dump_member_value(int depth, AstBoolOpType const & v) {         \
-            printf("%d", int(v));                                                   \
+            printf("%d\n", int(v));                                                 \
         }                                                                           \
         static void dump_member_value(int depth, AstUnaryOpType const & v) {        \
-            printf("%d", int(v));                                                   \
+            printf("%d\n", int(v));                                                 \
         }                                                                           \
         static void dump_member_value(int depth, AstCompareOpType const & v) {      \
-            printf("%d", int(v));                                                   \
+            printf("%d\n", int(v));                                                 \
         }                                                                           \
         static void dump_member_value(int depth, AstBinOpType const & v) {          \
-            printf("%d", int(v));                                                   \
+            printf("%d\n", int(v));                                                 \
         }                                                                           \
         static void dump_member_value(int depth, AstContext const & v) {            \
-            printf("%d", int(v));                                                   \
+            printf("%d\n", int(v));                                                 \
         }                                                                           \
     };
 
