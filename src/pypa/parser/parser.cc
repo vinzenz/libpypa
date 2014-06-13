@@ -343,68 +343,6 @@ bool augassign(State & s, AstBinOpType & op) {
     return true;
 }
 
-bool import_from(State & s, AstStmt & ast) {
-    StateGuard guard(s, ast);
-    AstImportFromPtr impfrom;
-    location(s, create(impfrom));
-    ast = impfrom;
-    impfrom->level = 0;
-    if(expect(s, Token::KeywordFrom)) {
-        // (expect(s, TokenKind::Dot)* dotted_name || expect(s, TokenKind::Dot)+)
-        if(is(s, TokenKind::Dot)) {
-            while(expect(s, TokenKind::Dot)) ++impfrom->level;
-        }
-        if(!dotted_name(s, impfrom->module) && impfrom->level == 0) {
-            syntax_error(s, ast, "Expected name of module");
-            return false;
-        }
-        //    expect(s, Token::KeywordImport)
-        if(!expect(s, Token::KeywordImport)) {
-            syntax_error(s, ast, "Expected 'import'");
-            return false;
-        }
-        // expect(s, TokenKind::Star)
-        if(expect(s, TokenKind::Star)) {
-            // ok
-        }
-        // || expect(s, TokenKind::LeftParen) import_as_names expect(s, TokenKind::RightParen)
-        else if(expect(s, TokenKind::LeftParen)) {
-            if(!import_as_names(s, impfrom->names)) {
-                    return false;
-            }
-            if(!expect(s, TokenKind::RightParen)) {
-                return false;
-            }
-            // ok
-        }
-        // || import_as_names))
-        else if(import_as_names(s, impfrom->names)) {
-            // ok
-        }
-        else {
-            return false;
-        }
-        return guard.commit();
-    }
-    return false;
-}
-
-bool import_as_names(State & s, AstExpr & ast) {
-    StateGuard guard(s, ast);
-    AstExpressionsPtr exprs;
-    location(s, create(exprs));
-    ast = exprs;
-    // import_as_name (expect(s, TokenKind::Comma) import_as_name)* [expect(s, TokenKind::Comma)]
-    AstExpr alias;
-    while(import_as_name(s, alias)) {
-        exprs->items.push_back(alias);
-        if(!expect(s, TokenKind::Comma)) {
-            break;
-        }
-    }
-    return !exprs->items.empty() && guard.commit();
-}
-
 bool return_stmt(State & s, AstStmt & ast) {
     StateGuard guard(s, ast);
     AstReturnPtr ret;
@@ -452,6 +390,9 @@ bool testlist1(State & s, AstExpr & ast) {
             }
             exprs->items.push_back(temp);
         }
+        if(exprs->items.size() == 1) {
+            ast = exprs->items.front();
+        }
     }
     return guard.commit();
 }
@@ -468,6 +409,10 @@ bool testlist_safe(State & s, AstExpr & ast) {
         if(!expect(s, TokenKind::Comma)) {
             break;
         }
+    }
+    if(exprs->items.size() == 1) {
+        ast = exprs->items.front();
+        return guard.commit();
     }
     return !exprs->items.empty() && guard.commit();
 }
@@ -502,6 +447,9 @@ bool testlist_comp(State & s, AstExpr & ast, bool * last_was_comma = 0) {
                 break;
             }
             exprs->items.push_back(tmp);
+        }
+        if(exprs->items.size() == 1) {
+            ast = exprs->items.front();
         }
     }
     return guard.commit();
@@ -565,20 +513,6 @@ bool old_test(State & s, AstExpr & ast) {
         || old_lambdef(s, ast);
 }
 
-bool import_name(State & s, AstStmt & ast) {
-    StateGuard guard(s, ast);
-    AstExpressionStatementPtr expr;
-    location(s, create(expr));
-    ast = expr;
-    // expect(s, Token::KeywordImport) dotted_as_names
-    if(!expect(s, Token::KeywordImport)) {
-        return false;
-    }
-    if(!dotted_as_names(s, expr->expr)) {
-        syntax_error(s, ast, "Expected module name to import");
-    }
-    return guard.commit();
-}
 
 bool break_stmt(State & s, AstStmt & ast) {
     StateGuard guard(s, ast);
@@ -815,6 +749,9 @@ bool atom(State & s, AstExpr & ast) {
             str->value = top(s).value;
             ptr->items.push_back(str);
             expect(s, Token::String);
+        }
+        if(ptr->items.size() == 1) {
+            ast = ptr->items.front();
         }
     }
     /*
@@ -2039,6 +1976,9 @@ bool fplist(State & s, AstExpr & ast) {
                 break;
             }
         }
+        if(exprs->items.size() == 1) {
+            ast = exprs->items.front();
+        }
         return guard.commit();
     }
     return false;
@@ -2165,6 +2105,83 @@ bool trailer(State & s, AstExpr & ast, AstExpr target) {
         return false;
     }
 
+    return guard.commit();
+}
+
+bool import_from(State & s, AstStmt & ast) {
+    StateGuard guard(s, ast);
+    AstImportFromPtr impfrom;
+    location(s, create(impfrom));
+    ast = impfrom;
+    impfrom->level = 0;
+    if(expect(s, Token::KeywordFrom)) {
+        // (expect(s, TokenKind::Dot)* dotted_name || expect(s, TokenKind::Dot)+)
+        if(is(s, TokenKind::Dot)) {
+            while(expect(s, TokenKind::Dot)) ++impfrom->level;
+        }
+        if(!dotted_name(s, impfrom->module) && impfrom->level == 0) {
+            syntax_error(s, ast, "Expected name of module");
+            return false;
+        }
+        //    expect(s, Token::KeywordImport)
+        if(!expect(s, Token::KeywordImport)) {
+            syntax_error(s, ast, "Expected 'import'");
+            return false;
+        }
+        // expect(s, TokenKind::Star)
+        if(expect(s, TokenKind::Star)) {
+            // ok
+        }
+        // || expect(s, TokenKind::LeftParen) import_as_names expect(s, TokenKind::RightParen)
+        else if(expect(s, TokenKind::LeftParen)) {
+            if(!import_as_names(s, impfrom->names)) {
+                    return false;
+            }
+            if(!expect(s, TokenKind::RightParen)) {
+                return false;
+            }
+            // ok
+        }
+        // || import_as_names))
+        else if(import_as_names(s, impfrom->names)) {
+            // ok
+        }
+        else {
+            return false;
+        }
+        return guard.commit();
+    }
+    return false;
+}
+
+bool import_as_names(State & s, AstExpr & ast) {
+    StateGuard guard(s, ast);
+    AstExpressionsPtr exprs;
+    location(s, create(exprs));
+    ast = exprs;
+    // import_as_name (expect(s, TokenKind::Comma) import_as_name)* [expect(s, TokenKind::Comma)]
+    AstExpr alias;
+    while(import_as_name(s, alias)) {
+        exprs->items.push_back(alias);
+        if(!expect(s, TokenKind::Comma)) {
+            break;
+        }
+    }
+    return !exprs->items.empty() && guard.commit();
+}
+
+bool import_name(State & s, AstStmt & ast) {
+    StateGuard guard(s, ast);
+    AstImportPtr imp;
+    location(s, create(imp));
+    ast = imp;
+    // expect(s, Token::KeywordImport) dotted_as_names
+    if(!expect(s, Token::KeywordImport)) {
+        return false;
+    }
+    if(!dotted_as_names(s, imp->names)) {
+        syntax_error(s, ast, "Expected module name to import");
+    }
     return guard.commit();
 }
 
