@@ -3,6 +3,7 @@
 - [Introduction](#introduction)
  - [Motivation](#introduction-motivation)
  - [Goal](#introduction-goal)
+- [Example](#example)
 - [Requirements](#requirements)
 - [Structure](#structure)
  - [Lexer](#structure-lexer)
@@ -29,6 +30,72 @@ implemented in Python itself.
 ### Goal
 The first goal of the library is to support python 2.7 syntax, later on 3.x
 syntax might be added.
+
+<a name="example">
+## Example
+
+An example file:
+
+    $cat hello_world.py
+    #! /usr/bin/env python
+    # -*- coding: utf-8 -*-
+    #
+
+    """
+        A "Hello World" example for the pypa parser
+    """
+    import sys
+
+    print >> sys.stdout, "Hello", "World!"
+
+
+And here the output of the test parser:
+
+    $ ./parser-test hello_world.py
+    Parsing successfull
+
+    [Module]
+      - body:
+        [Suite]
+          - items: [
+                [ExpressionStatement]
+                  - expr:
+                    [Str]
+                      - value: """
+        A "Hello World" example for the pypa parser
+    """
+                      - context: UNDEFINED
+
+                [Import]
+                  - names:
+                    [Name]
+                      - context: UNDEFINED
+                      - id: sys
+
+                [Print]
+                  - destination:
+                    [Attribute]
+                      - value:
+                        [Name]
+                          - context: UNDEFINED
+                          - id: sys
+                      - context: UNDEFINED
+                      - attribute:
+                        [Name]
+                          - context: UNDEFINED
+                          - id: stdout
+                  - newline: True
+                  - values: [
+                        [Str]
+                          - value: "Hello"
+                          - context: UNDEFINED
+
+                        [Str]
+                          - value: "World!"
+                          - context: UNDEFINED
+                        ]
+                ]
+
 
 <a name="requirements">
 ## Requirements
@@ -72,19 +139,20 @@ set the type id value and initialize the line and column values.
 
 <a name="license">
 ## License
-   Copyright 2014 Vinzenz Feenstra
+    Copyright 2014 Vinzenz Feenstra
 
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
 
-   http://www.apache.org/licenses/LICENSE-2.0
+    http://www.apache.org/licenses/LICENSE-2.0
 
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
 
 ### License for src/double-conversion
     Copyright 2006-2011, the V8 project authors. All rights reserved.
@@ -120,3 +188,4 @@ set the type id value and initialize the line and column values.
   [3]: http://www.gnu.org/s/bison/
   [4]: http://boost-spirit.com
   [5]: http://github.com/dropbox/pyston
+
