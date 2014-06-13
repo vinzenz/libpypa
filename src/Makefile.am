@@ -37,17 +37,33 @@ pypa_HEADERS=\
 	pypa/filebuf.hh \
 	$(NULL)
 
+
+pypaparserdir=$(includedir)/pypa/parser
+pypaparser_HEADERS=\
+	pypa/parser/parser_fwd.hh \
+	pypa/parser/apply.hh \
+	pypa/parser/state.hh \
+	pypa/parser/parser.hh \
+	$(NULL)
+
 pypaastdir=$(includedir)/pypa/ast
 pypaast_HEADERS=\
 	pypa/ast/ast.hh \
+	pypa/ast/ast_type.inl \
+	pypa/ast/base.hh \
+	pypa/ast/context_assign.hh \
+	pypa/ast/macros.hh \
+	pypa/ast/tree_walker.hh \
+	pypa/ast/types.hh \
+	pypa/ast/visitor.hh \
 	$(NULL)
 
 pypalexerdir=$(includedir)/pypa/lexer
 pypalexer_HEADERS=\
-	pypa/lexer/op.hh \
-	pypa/lexer/keyword.hh \
-	pypa/lexer/tokendef.hh \
 	pypa/lexer/delim.hh \
+	pypa/lexer/keyword.hh \
 	pypa/lexer/lexer.hh \
+	pypa/lexer/op.hh \
+	pypa/lexer/tokendef.hh \
 	pypa/lexer/tokens.hh \
 	$(NULL)
