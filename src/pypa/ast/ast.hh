@@ -166,6 +166,11 @@ PYPA_AST_EXPR(DictComp) {
 };
 PYPA_AST_MEMBERS3(DictComp, key, value, generators);
 
+PYPA_AST_STMT(DocString) {
+    String doc;
+};
+PYPA_AST_MEMBERS1(DocString, doc);
+
 PYPA_AST_EXPR(EllipsisObject) {};
 PYPA_AST_MEMBERS0(EllipsisObject);
 
