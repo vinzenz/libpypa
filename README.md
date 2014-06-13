@@ -103,6 +103,7 @@ The parser supports also SyntaxError and IndentionError reporting:
 
 Let's take a look at this file `syntax_error.py` which clearly has a
 syntax error:
+
     #! /usr/bin/env python
     # -*- coding: utf-8 -*-
     """
