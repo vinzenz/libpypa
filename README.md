@@ -92,6 +92,47 @@ And here the output of the test parser:
                         ]
                 ]
 
+And here the parse tree of python: (astdump.py can be found in tools)
+
+    [Module]
+        - body: [
+
+            [Expr]
+                - value:
+                [Str]
+                    - s:
+        A "Hello World" example for the pypa parser
+
+
+            [Import]
+                - names: [
+
+                    [alias]
+                        - asname: None
+                        - name: sys
+                ]
+
+            [Print]
+                - dest:
+                [Attribute]
+                    - attr: stdout
+                    - ctx: Load
+                    - value:
+                    [Name]
+                        - ctx: Load
+                        - id: sys
+                - nl: True
+                - values: [
+
+                    [Str]
+                        - s: Hello
+
+                    [Str]
+                        - s: World!
+                ]
+        ]
+
+
 <a name="error-reporting">
 ## Error Reporting
 The parser supports also SyntaxError and IndentionError reporting:
