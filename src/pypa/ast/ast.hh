@@ -124,12 +124,13 @@ PYPA_AST_EXPR(Compare) {
 PYPA_AST_MEMBERS3(Compare, left, op, right);
 
 PYPA_AST_EXPR(Comprehension) {
-    AstExpr target;
-    AstExpr iter;
+    AstExpr     target;
+    AstExpr     iter;
+    AstExprList ifs;
 };
 typedef AstComprehensionPtr      AstComprPtr;
 typedef std::vector<AstComprPtr> AstComprList;
-PYPA_AST_MEMBERS2(Comprehension, target, iter);
+PYPA_AST_MEMBERS3(Comprehension, target, iter, ifs);
 
 PYPA_AST_EXPR(Decorator) {
     AstExpr      name;
@@ -160,9 +161,9 @@ PYPA_AST_EXPR(Dict) {
 PYPA_AST_MEMBERS2(Dict, keys, values);
 
 PYPA_AST_EXPR(DictComp) {
-    AstExpr key;
-    AstExpr value;
-    AstExpr generators;
+    AstExpr     key;
+    AstExpr     value;
+    AstExprList generators;
 };
 PYPA_AST_MEMBERS3(DictComp, key, value, generators);
 
@@ -233,10 +234,10 @@ PYPA_AST_STMT(FunctionDef) {
 PYPA_AST_MEMBERS3(FunctionDef, name, args, body);
 
 PYPA_AST_EXPR(Generator) {
-    AstExpr expression;
-    AstExpr for_expr;
+    AstExpr     element;
+    AstExprList generators;
 };
-PYPA_AST_MEMBERS2(Generator, expression, for_expr);
+PYPA_AST_MEMBERS2(Generator, element, generators);
 
 PYPA_AST_STMT(Global) {
     std::vector<AstNamePtr> names;
@@ -289,8 +290,8 @@ PYPA_AST_EXPR(List) {
 PYPA_AST_MEMBERS2(List, elements, context);
 
 PYPA_AST_EXPR(ListComp) {
-    AstExpr element;
-    AstExpr generators;
+    AstExpr     element;
+    AstExprList generators;
 };
 PYPA_AST_MEMBERS2(ListComp, element, generators);
 
@@ -309,7 +310,7 @@ PYPA_AST_EXPR(Number) {
         char    data[sizeof(floating) > sizeof(integer) ? sizeof(floating) : sizeof(integer)];
     };
 };
-PYPA_AST_MEMBERS2(Number, num_type, data);
+PYPA_AST_MEMBERS4(Number, num_type, data, floating, integer);
 
 
 PYPA_AST_EXPR(Complex) {
@@ -359,8 +360,8 @@ PYPA_AST_EXPR(Set) {
 PYPA_AST_MEMBERS1(Set, elements);
 
 PYPA_AST_EXPR(SetComp) {
-    AstExpr element;
-    AstExpr generators;
+    AstExpr     element;
+    AstExprList generators;
 };
 PYPA_AST_MEMBERS2(SetComp, element, generators);
 

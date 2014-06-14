@@ -28,9 +28,8 @@ namespace pypa {
     bool augassign(State & s, AstExpr & ast);
     bool break_stmt(State & s, AstStmt & ast);
     bool classdef(State & s, AstStmt & ast);
-    bool comp_for(State & s, AstExpr & ast);
+    bool comp_for(State & s, AstExprList & ast);
     bool comp_if(State & s, AstExpr & ast);
-    bool comp_iter(State & s, AstExpr & ast);
     bool comp_op(State & s, AstCompareOpType & op);
     bool comparison(State & s, AstExpr & ast);
     bool compound_stmt(State & s, AstStmt & ast);
@@ -64,9 +63,8 @@ namespace pypa {
     bool import_name(State & s, AstStmt & ast);
     bool import_stmt(State & s, AstStmt & ast);
     bool lambdef(State & s, AstExpr & ast);
-    bool list_for(State & s, AstExpr & ast);
+    bool list_for(State & s, AstExprList & ast);
     bool list_if(State & s, AstExpr & ast);
-    bool list_iter(State & s, AstExpr & ast);
     bool listmaker(State & s, AstExpr & ast);
     bool not_test(State & s, AstExpr & ast);
     bool old_lambdef(State & s, AstExpr & ast);

@@ -120,6 +120,12 @@
         static void dump_member_value(int depth, int const & v) {                   \
             printf("%d\n", int(v));                                                 \
         }                                                                           \
+        static void dump_member_value(int depth, int64_t const & v) {               \
+            printf("%lld\n", int64_t(v));                                           \
+        }                                                                           \
+        static void dump_member_value(int depth, double const & v) {                \
+            printf("%g\n", int64_t(v));                                             \
+        }                                                                           \
         static void dump_member_value(int depth, AstBoolOpType const & v) {         \
             printf("%s\n", to_string(v));                                           \
         }                                                                           \

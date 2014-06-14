@@ -427,11 +427,11 @@ bool testlist_comp(State & s, AstExpr & ast, bool * last_was_comma = 0) {
         return false;
     }
     if(is(s, Token::KeywordFor)) {
-        AstComprPtr compr;
-        location(s, create(compr));
-        ast = compr;
-        compr->target = tmp;
-        if(!comp_for(s, compr->iter)) {
+        AstGeneratorPtr gener;
+        location(s, create(gener));
+        ast = gener;
+        gener->element = tmp;
+        if(!comp_for(s, gener->generators)) {
             return false;
         }
     }
@@ -1392,11 +1392,11 @@ bool argument(State & s, AstExpr & ast) {
         return false;
     }
     if(!is(s, TokenKind::Equal)) {
-        AstComprPtr ptr;
+        AstGeneratorPtr ptr;
         location(s, create(ptr));
         ast = ptr;
-        ptr->target = first;
-        if(!comp_for(s, ptr->iter)) {
+        ptr->element = first;
+        if(!comp_for(s, ptr->generators)) {
             ast = first;
         }
     }
@@ -2261,7 +2261,7 @@ bool eval_input(State & s, AstStmt & ast) {
 }
 
 bool arith_expr(State & s, AstExpr & ast) {
-    StateGuard guard(s, ast);
+    StateGuard guard(s);
     // term ((expect(s, TokenKind::Plus)||expect(s, TokenKind::Minus)) term)*
     if(!term(s, ast)) {
         return false;
@@ -2297,77 +2297,85 @@ bool arith_expr(State & s, AstExpr & ast) {
     return guard.commit();
 }
 
-bool list_iter(State & s, AstExpr & ast) {
-    return list_for(s, ast)
-        || list_if(s, ast);
-}
-
 bool list_if(State & s, AstExpr & ast) {
     StateGuard guard(s, ast);
-    AstComprPtr comp;
-    location(s, create(comp));
-    ast = comp;
     // expect(s, Token::KeywordIf) old_test [list_iter]
     if(!expect(s, Token::KeywordIf)) {
         return false;
     }
-    if(!old_test(s, comp->target)) {
+    if(!old_test(s, ast)) {
         syntax_error(s, ast, "Expected condition after `if`");
         return false;
     }
-    list_iter(s, comp->iter);
     return guard.commit();
 }
 
-bool list_for(State & s, AstExpr & ast) {
-    StateGuard guard(s, ast);
-    AstForExprPtr forexpr;
-    location(s, create(forexpr));
-    ast = forexpr;
+bool list_for(State & s, AstExprList & ast) {
+    StateGuard guard(s);
+    if(!is(s, Token::KeywordFor)) {
+        return false;
+    }
+    AstComprPtr compr;
+    location(s, create(compr));
     // expect(s, Token::KeywordFor) exprlist expect(s, Token::KeywordIn) testlist_safe [list_iter]
-    if(!expect(s, Token::KeywordFor)) {
-        return false;
+    while(expect(s, Token::KeywordFor)) {
+        if(!exprlist(s, compr->target)) {
+            syntax_error(s, compr, "Expected expression after `for`");
+            return false;
+        }
+        if(!expect(s, Token::KeywordIn)) {
+            syntax_error(s, compr, "Expected `in`");
+            return false;
+        }
+        if(!testlist_safe(s, compr->iter)) {
+            syntax_error(s, compr, "Expected expression after `in`");
+            return false;
+        }
+        visit(context_assign{AstContext::Store}, compr->target);
+        AstExpr if_expr;
+        while(list_if(s, if_expr)) {
+            compr->ifs.push_back(if_expr);
+        }
+
+        ast.push_back(compr);
+        compr.reset();
+        location(s, create(compr));
     }
-    if(!exprlist(s, forexpr->items)) {
-        syntax_error(s, ast, "Expected expression after `for`");
-        return false;
-    }
-    if(!expect(s, Token::KeywordIn)) {
-        syntax_error(s, ast, "Expected `in`");
-        return false;
-    }
-    if(!testlist_safe(s, forexpr->generators)) {
-        syntax_error(s, ast, "Expected expression after `in`");
-        return false;
-    }
-    visit(context_assign{AstContext::Store}, forexpr->items);
-    list_iter(s, forexpr->iter);
     return guard.commit();
 }
 
-bool comp_for(State & s, AstExpr & ast) {
-    StateGuard guard(s, ast);
-    AstForExprPtr forexpr;
-    location(s, create(forexpr));
-    ast = forexpr;
+bool comp_for(State & s, AstExprList & ast) {
+    StateGuard guard(s);
     // expect(s, Token::KeywordFor) exprlist expect(s, Token::KeywordIn) or_test [comp_iter]
-    if(!expect(s, Token::KeywordFor)) {
+    if(!is(s, Token::KeywordFor)) {
         return false;
     }
-    if(!exprlist(s, forexpr->items)) {
-        syntax_error(s, ast, "Expected expression after `for`");
-        return false;
+    AstComprPtr compr;
+    location(s, create(compr));
+    while(expect(s, Token::KeywordFor)) {
+        if(!exprlist(s, compr->target)) {
+            syntax_error(s, compr, "Expected expression after `for`");
+            return false;
+        }
+        if(!expect(s, Token::KeywordIn)) {
+            syntax_error(s, compr, "Expected `in`");
+            return false;
+        }
+        if(!or_test(s, compr->iter)) {
+            syntax_error(s, compr, "Expected expression after `in`");
+            return false;
+        }
+        visit(context_assign{AstContext::Store}, compr->target);
+
+        AstExpr if_expr;
+        while(comp_if(s, if_expr)) {
+            compr->ifs.push_back(if_expr);
+        }
+
+        ast.push_back(compr);
+        compr.reset();
+        location(s, create(compr));
     }
-    if(!expect(s, Token::KeywordIn)) {
-        syntax_error(s, ast, "Expected `in`");
-        return false;
-    }
-    if(!or_test(s, forexpr->generators)) {
-        syntax_error(s, ast, "Expected expression after `in`");
-        return false;
-    }
-    visit(context_assign{AstContext::Store}, forexpr->items);
-    comp_iter(s, forexpr->iter);
     return guard.commit();
 }
 
@@ -2384,13 +2392,7 @@ bool comp_if(State & s, AstExpr & ast) {
         syntax_error(s, ast, "Expected condition after `if`");
         return false;
     }
-    comp_iter(s, ptr->iter);
     return guard.commit();
-}
-
-bool comp_iter(State & s, AstExpr & ast) {
-    return comp_for(s, ast)
-        || comp_if(s, ast);
 }
 
 bool yield_stmt(State & s, AstStmt & ast) {
