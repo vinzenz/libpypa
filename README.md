@@ -55,47 +55,42 @@ And here the output of the test parser:
     $ ./parser-test hello_world.py
     Parsing successfull
 
-    [Module]
-      - body:
-        [Suite]
-          - items: [
-                [ExpressionStatement]
-                  - expr:
-                    [Str]
-                      - value: """
-        A "Hello World" example for the pypa parser
-    """
-                      - context: UNDEFINED
+[Module]
+  - body:
+    [Suite]
+      - items: [
+            [DocString]
+              - doc: """
+    A "Hello World" example for the pypa parser
+"""
 
-                [Import]
-                  - names:
+            [Import]
+              - names:
+                [Name]
+                  - context: Load
+                  - id: sys
+
+            [Print]
+              - destination:
+                [Attribute]
+                  - value:
                     [Name]
-                      - context: UNDEFINED
+                      - context: Load
                       - id: sys
+                  - context: Load
+                  - attribute:
+                    [Name]
+                      - context: Load
+                      - id: stdout
+              - newline: True
+              - values: [
+                    [Str]
+                      - value: "Hello"
 
-                [Print]
-                  - destination:
-                    [Attribute]
-                      - value:
-                        [Name]
-                          - context: UNDEFINED
-                          - id: sys
-                      - context: UNDEFINED
-                      - attribute:
-                        [Name]
-                          - context: UNDEFINED
-                          - id: stdout
-                  - newline: True
-                  - values: [
-                        [Str]
-                          - value: "Hello"
-                          - context: UNDEFINED
-
-                        [Str]
-                          - value: "World!"
-                          - context: UNDEFINED
-                        ]
-                ]
+                    [Str]
+                      - value: "World!"
+                    ]
+            ]
 
 <a name="error-reporting">
 ## Error Reporting
