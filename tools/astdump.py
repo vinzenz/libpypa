@@ -18,7 +18,7 @@ def print_ast(a, pad=''):
         for i in a:
             print_ast(i, pad + PADDING)
         print '%s]' % pad
-    elif isinstance(a, (basestring, int, long, complex)) or a is None:
+    elif isinstance(a, (basestring, int, float, long, complex)) or a is None:
         print a
     elif isinstance(a, (ast.Load, ast.Store, ast.AugLoad, ast.AugStore,
                         ast.Param, ast.Del)):
