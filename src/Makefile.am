@@ -4,13 +4,14 @@ AM_CFLAGS=-DIEEE_8087
 lib_LTLIBRARIES=libpypa.la
 libpypa_la_CXXFLAGS=$(PYPA_CXXFLAGS)
 libpypa_la_SOURCES=\
-	pypa/filebuf.cc \
 	pypa/ast/ast.cc \
 	pypa/ast/dump.cc \
+	pypa/filebuf.cc \
 	pypa/lexer/lexer.cc \
 	pypa/parser/parser.cc \
-	double-conversion/src/bignum.cc \
+	pypa/parser/symbol_table.cc \
 	double-conversion/src/bignum-dtoa.cc \
+	double-conversion/src/bignum.cc \
 	double-conversion/src/cached-powers.cc \
 	double-conversion/src/diy-fp.cc \
 	double-conversion/src/double-conversion.cc \
@@ -35,15 +36,17 @@ parser_test_LDADD=libpypa.la
 pypadir=$(includedir)/pypa
 pypa_HEADERS=\
 	pypa/filebuf.hh \
+	pypa/types.hh \
 	$(NULL)
 
 
 pypaparserdir=$(includedir)/pypa/parser
 pypaparser_HEADERS=\
-	pypa/parser/parser_fwd.hh \
 	pypa/parser/apply.hh \
-	pypa/parser/state.hh \
 	pypa/parser/parser.hh \
+	pypa/parser/parser_fwd.hh \
+	pypa/parser/state.hh \
+	pypa/parser/symbol_table.hh \
 	$(NULL)
 
 pypaastdir=$(includedir)/pypa/ast

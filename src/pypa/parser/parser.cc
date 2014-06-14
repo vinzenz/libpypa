@@ -1855,6 +1855,7 @@ bool xor_expr(State & s, AstExpr & ast) {
 }
 
 bool file_input(State & s, AstModulePtr & ast) {
+    s.symbols.push_entry(BlockType::Module, s.lexer->get_name(), false, top(s).line);
     StateGuard guard(s, ast);
     location(s, create(ast));
     location(s, create(ast->body));
@@ -2177,13 +2178,13 @@ struct future_feature_mapping {
 
 bool import_from(State & s, AstStmt & ast) {
     future_feature_mapping future_mapping[] = {
-        {"nested_scopes", &s.future_features.nested_scopes },
-        {"generators", &s.future_features.generators },
-        {"division", &s.future_features.division },
-        {"absolute_import", &s.future_features.absolute_imports },
-        {"with_statement", &s.future_features.with_statement },
-        {"print_function", &s.future_features.print_function },
-        {"unicode_literals", &s.future_features.unicode_literals },
+        {"nested_scopes", &s.symbols.future_features.nested_scopes },
+        {"generators", &s.symbols.future_features.generators },
+        {"division", &s.symbols.future_features.division },
+        {"absolute_import", &s.symbols.future_features.absolute_imports },
+        {"with_statement", &s.symbols.future_features.with_statement },
+        {"print_function", &s.symbols.future_features.print_function },
+        {"unicode_literals", &s.symbols.future_features.unicode_literals },
         {0, 0}
     };
 

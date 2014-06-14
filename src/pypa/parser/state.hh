@@ -16,6 +16,7 @@
 
 #include <pypa/parser/parser.hh>
 #include <pypa/parser/future_features.hh>
+#include <pypa/parser/symbol_table.hh>
 #include <string>
 #include <stack>
 
@@ -44,7 +45,7 @@ namespace {
         TokenInfo               tok_cur;
         std::stack<Error>       errors;
         ParserOptions           options;
-        FutureFeatures          future_features;
+        SymbolTable             symbols;
     };
 
     TokenInfo pop(State & s) {

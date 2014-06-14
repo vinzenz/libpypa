@@ -14,6 +14,7 @@
 #ifndef GUARD_PYPA_PARSER_SYMBOL_TABLE_HH_INCLUDED
 #define GUARD_PYPA_PARSER_SYMBOL_TABLE_HH_INCLUDED
 
+#include <list>
 #include <memory>
 #include <stack>
 #include <unordered_set>
@@ -32,15 +33,32 @@ enum class BlockType {
 
 
 struct SymbolFlags {
+    bool global_explicit;
+    bool global_implicit;
+    bool local;
+    bool param;
+    bool used;
+    bool free;
+    bool free_class;
+    bool import;
+    bool cell;
 
+    bool global() const {
+        return global_explicit || global_implicit;
+    }
+
+    bool bound() const {
+        return local || param || import;
+    }
 };
 
 typedef std::shared_ptr<struct SymbolTableEntry> SymbolTableEntryPtr;
 struct SymbolTableEntry {
     uint64_t                                id;
     BlockType                               type;
-    std::unordered_map<String, SymbolFlags> symbols;
     String                                  name;
+
+    std::unordered_map<String, SymbolFlags> symbols;
     std::unordered_set<String>              variables;
     std::list<SymbolTableEntryPtr>          children;
 
@@ -63,12 +81,14 @@ struct SymbolTable {
 
     std::unordered_map<uint64_t, SymbolTableEntryPtr> symbols;
     std::stack<SymbolTableEntryPtr> stack;
-    std::stack<SymbolTableEntryPtr> stack;
 
-    SymbolTableEntry module;
-    SymbolTableEntry current;
+    SymbolTableEntryPtr module;
+    SymbolTableEntryPtr current;
 
     FutureFeatures   future_features;
+
+    void push_entry(BlockType type, String name, bool nested, int line);
+    void pop_entry();
 };
 
 }
