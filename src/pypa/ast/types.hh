@@ -23,11 +23,10 @@ typedef std::string String;
 typedef std::vector<String> StringList;
 
 enum class AstContext {
-    Undefined = 0, Load = 1, Store = 2, Del = 3, AugLoad = 4, AugStore = 5, Param = 6
+    Load = 0, Store = 1, Del = 2, AugLoad = 3, AugStore = 4, Param = 5
 };
 inline char const * to_string(AstContext o) {
     switch(o) {
-    case AstContext::Undefined: return "UNDEFINED";
     case AstContext::Load:      return "Load";
     case AstContext::Store:     return "Store";
     case AstContext::Del:       return "Del";
