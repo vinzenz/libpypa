@@ -55,42 +55,42 @@ And here the output of the test parser:
     $ ./parser-test hello_world.py
     Parsing successfull
 
-[Module]
-  - body:
-    [Suite]
-      - items: [
-            [DocString]
-              - doc: """
-    A "Hello World" example for the pypa parser
-"""
+    [Module]
+      - body:
+        [Suite]
+          - items: [
+                [DocString]
+                  - doc: """
+        A "Hello World" example for the pypa parser
+    """
 
-            [Import]
-              - names:
-                [Name]
-                  - context: Load
-                  - id: sys
-
-            [Print]
-              - destination:
-                [Attribute]
-                  - value:
+                [Import]
+                  - names:
                     [Name]
                       - context: Load
                       - id: sys
-                  - context: Load
-                  - attribute:
-                    [Name]
-                      - context: Load
-                      - id: stdout
-              - newline: True
-              - values: [
-                    [Str]
-                      - value: "Hello"
 
-                    [Str]
-                      - value: "World!"
-                    ]
-            ]
+                [Print]
+                  - destination:
+                    [Attribute]
+                      - value:
+                        [Name]
+                          - context: Load
+                          - id: sys
+                      - context: Load
+                      - attribute:
+                        [Name]
+                          - context: Load
+                          - id: stdout
+                  - newline: True
+                  - values: [
+                        [Str]
+                          - value: "Hello"
+
+                        [Str]
+                          - value: "World!"
+                        ]
+                ]
 
 <a name="error-reporting">
 ## Error Reporting
