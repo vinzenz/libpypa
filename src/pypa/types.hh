@@ -11,34 +11,17 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-#ifndef GUARD_PYPA_PARSER_PARSER_HH_INCLUDED
-#define GUARD_PYPA_PARSER_PARSER_HH_INCLUDED
+#ifndef GUARD_PYPA_TYPES_HH_INCLUDED
+#define GUARD_PYPA_TYPES_HH_INCLUDED
 
-#include <pypa/lexer/lexer.hh>
-#include <pypa/ast/ast.hh>
+#include <vector>
+#include <string>
 
 namespace pypa {
 
-struct ParserOptions {
-    ParserOptions()
-    : python3only(false)
-    , python3allowed(false)
-    , docstrings(true)
-    , printerrors(true)
-    {}
-
-    bool python3only;
-    bool python3allowed;
-    bool docstrings;
-    bool printerrors;
-};
-
-class Parser {
-public:
-    bool parse(Lexer & lexer, AstModulePtr & ast, ParserOptions options = ParserOptions());
-};
+typedef std::string String;
+typedef std::vector<String> StringList;
 
 }
 
-#endif // GUARD_PYPA_PARSER_PARSER_HH_INCLUDED
-
+#endif // GUARD_PYPA_TYPES_HH_INCLUDED

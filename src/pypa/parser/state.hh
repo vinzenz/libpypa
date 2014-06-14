@@ -15,6 +15,7 @@
 #define GUARD_PYPA_PARSER_STATE_HH_INCLUDED
 
 #include <pypa/parser/parser.hh>
+#include <pypa/parser/future_features.hh>
 #include <string>
 #include <stack>
 
@@ -43,6 +44,7 @@ namespace {
         TokenInfo               tok_cur;
         std::stack<Error>       errors;
         ParserOptions           options;
+        FutureFeatures          future_features;
     };
 
     TokenInfo pop(State & s) {

@@ -14,13 +14,13 @@
 #ifndef GUARD_PYPA_AST_TYPES_HH_INCLUDED
 #define GUARD_PYPA_AST_TYPES_HH_INCLUDED
 
+#include <pypa/types.hh>
+
 #include <string>
 #include <memory>
 #include <vector>
 
 namespace pypa {
-typedef std::string String;
-typedef std::vector<String> StringList;
 
 enum class AstContext {
     Load = 0, Store = 1, Del = 2, AugLoad = 3, AugStore = 4, Param = 5

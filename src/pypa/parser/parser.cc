@@ -30,25 +30,38 @@ AstPtr error_transform(T const & t) {
 }
 
 void report_error(State & s) {
+    if(!s.options.printerrors) {
+        return;
+    }
     Error & e = s.errors.top();
-    printf("  File \"%s\", line %d\n    %s\n    ", s.lexer->get_name().c_str(), e.cur.line, e.line.c_str());
+    fprintf(stderr, "  File \"%s\", line %d\n    %s\n    ", s.lexer->get_name().c_str(), e.cur.line, e.line.c_str());
     if(e.cur.column == 0) ++e.cur.column;
     for(int i = 0; i < e.cur.column - 1; ++i) {
         printf(" ");
     }
-    printf("^\n%s: %s", e.type == ErrorType::SyntaxError ? "SyntaxError" : "IndentationError", e.message.c_str());
+    fprintf(stderr, "^\n%s: %s", e.type == ErrorType::SyntaxError ? "SyntaxError" : "IndentationError", e.message.c_str());
     if(e.detected_line != -1) {
         printf("\n-> Reported @%s:%d in %s\n\n", e.detected_file, e.detected_line, e.detected_function);
     }
 }
 
 void syntax_error_dbg(State & s, AstPtr ast, char const * message, int line = -1, char const * file = 0, char const * function = 0) {
-    s.errors.push({ErrorType::SyntaxError, message, top(s), ast, s.lexer->get_line(top(s).line), line, file ? file : "", function ? function : ""});
+    TokenInfo cur = top(s);
+    if(ast && cur.line > ast->line) {
+        cur.line    = ast->line;
+        cur.column  = ast->column;
+    }
+    s.errors.push({ErrorType::SyntaxError, message, cur, ast, s.lexer->get_line(cur.line), line, file ? file : "", function ? function : ""});
     report_error(s);
 }
 
 void indentation_error_dbg(State & s, AstPtr ast, int line = -1, char const * file = 0, char const * function = 0) {
-    s.errors.push({ErrorType::IndentationError, "", top(s), ast, s.lexer->get_line(top(s).line), line, file ? file : "", function ? function : ""});
+    TokenInfo cur = top(s);
+    if(ast && cur.line > ast->line) {
+        cur.line    = ast->line;
+        cur.column  = ast->column;
+    }
+    s.errors.push({ErrorType::IndentationError, "", cur, ast, s.lexer->get_line(cur.line), line, file ? file : "", function ? function : ""});
     report_error(s);
 }
 
@@ -2157,20 +2170,41 @@ bool trailer(State & s, AstExpr & ast, AstExpr target) {
     return guard.commit();
 }
 
+struct future_feature_mapping {
+    char const * name;
+    bool *      value;
+};
+
 bool import_from(State & s, AstStmt & ast) {
+    future_feature_mapping future_mapping[] = {
+        {"nested_scopes", &s.future_features.nested_scopes },
+        {"generators", &s.future_features.generators },
+        {"division", &s.future_features.division },
+        {"absolute_import", &s.future_features.absolute_imports },
+        {"with_statement", &s.future_features.with_statement },
+        {"print_function", &s.future_features.print_function },
+        {"unicode_literals", &s.future_features.unicode_literals },
+        {0, 0}
+    };
+
     StateGuard guard(s, ast);
     AstImportFromPtr impfrom;
     location(s, create(impfrom));
     ast = impfrom;
     impfrom->level = 0;
+    bool is_future_import = false;
     if(expect(s, Token::KeywordFrom)) {
         // (expect(s, TokenKind::Dot)* dotted_name || expect(s, TokenKind::Dot)+)
         if(is(s, TokenKind::Dot)) {
             while(expect(s, TokenKind::Dot)) ++impfrom->level;
         }
-        if(!dotted_name(s, impfrom->module) && impfrom->level == 0) {
+        if(impfrom->level == 0 && !dotted_name(s, impfrom->module)) {
             syntax_error(s, ast, "Expected name of module");
             return false;
+        }
+        if(impfrom->level == 0) {
+            assert(impfrom->module->type == AstType::Name);
+            is_future_import = std::static_pointer_cast<AstName>(impfrom->module)->id == "__future__";
         }
         //    expect(s, Token::KeywordImport)
         if(!expect(s, Token::KeywordImport)) {
@@ -2179,6 +2213,10 @@ bool import_from(State & s, AstStmt & ast) {
         }
         // expect(s, TokenKind::Star)
         if(expect(s, TokenKind::Star)) {
+            if(is_future_import) {
+                syntax_error(s, ast, "future feature * is not defined");
+                return false;
+            }
             // ok
         }
         // || expect(s, TokenKind::LeftParen) import_as_names expect(s, TokenKind::RightParen)
@@ -2198,6 +2236,49 @@ bool import_from(State & s, AstStmt & ast) {
         else {
             return false;
         }
+        if(impfrom->names) {
+            auto future_check = [&s, &future_mapping](AstExpr e) -> bool {
+                future_feature_mapping * iter = future_mapping;
+                if(!e) {
+                    assert("Invalid parameter" && false);
+                    return false;
+                }
+                assert(e->type == AstType::Alias);
+                auto n = std::static_pointer_cast<AstAlias>(e)->name;
+                if(n) {
+                    assert(n->type == AstType::Name);
+                    auto & name = *std::static_pointer_cast<AstName>(n);
+                    bool found = false;
+                    while(iter && iter->name) {
+                        if(name.id == iter->name) {
+                            *iter->value = found = true;
+                        }
+                        ++iter;
+                    }
+                    if(!found) {
+                        syntax_error(s, e, ("future feature '" + name.id + "' is not defined").c_str());
+                    }
+                    return found;
+                }
+                return false;
+            };
+
+            bool failure = false;
+            if(impfrom->names->type == AstType::Expressions) {
+                for(auto e : std::static_pointer_cast<AstExpressions>(impfrom->names)->items) {
+                    if(!future_check(e)) {
+                        failure = true;
+                    }
+                }
+            }
+            else {
+                failure = !future_check(impfrom->names);
+            }
+            if(failure) {
+                return false;
+            }
+        }
+
         return guard.commit();
     }
     return false;
