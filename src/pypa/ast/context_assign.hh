@@ -45,8 +45,7 @@ struct context_assign {
     }
 
     void operator() (AstKeyword & k) {
-        visit(context_assign{AstContext::Load}, k.value);
-        visit(context_assign{AstContext::Param}, k.name);
+        visit(context_assign{AstContext::Store}, k.name);
     }
 
     void operator() (AstAttribute & attribute) {

@@ -374,9 +374,8 @@ PYPA_AST_MEMBERS3(Slice, lower, upper, step);
 
 PYPA_AST_EXPR(Str) {
     String value;
-    AstContext context;
 };
-PYPA_AST_MEMBERS2(Str, value, context);
+PYPA_AST_MEMBERS1(Str, value);
 
 PYPA_AST_EXPR(Subscript) {
     AstExpr         value;

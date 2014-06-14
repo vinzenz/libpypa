@@ -469,6 +469,7 @@ bool except_clause(State & s, AstExpr & ast) {
             if(!test(s, except->name)) {
                 return false;
             }
+            visit(context_assign{AstContext::Store}, except->name);
         }
     }
 
@@ -812,9 +813,6 @@ bool parameters(State & s, AstArguments & ast) {
     for(auto & a : ast.arguments) {
         visit(context_assign{AstContext::Param}, a);
     }
-    for(auto & d : ast.defaults) {
-        visit(context_assign{AstContext::Load}, d);
-    }
     visit(context_assign{AstContext::Param}, ast.kwargs);
 
     return guard.commit();
@@ -878,16 +876,11 @@ bool arglist(State & s, AstArguments & ast) {
         }
     }
 
-    for(auto & a : ast.args) {
-        visit(context_assign{AstContext::Load}, a);
-    }
-    for(auto & a : ast.arguments) {
-        visit(context_assign{AstContext::Load}, a);
-    }
     for(auto & d : ast.keywords) {
-        visit(context_assign{AstContext::Undefined}, d);
+        // Even though we're saying store, it'll set Load for the value
+        // and Store for the key
+        visit(context_assign{AstContext::Store}, d);
     }
-    visit(context_assign{AstContext::Load}, ast.kwargs);
 
     return guard.commit();
 }
@@ -1168,6 +1161,7 @@ bool with_item(State & s, AstWithItemPtr & ast) {
             syntax_error(s, ast, "Expected expression after `as`");
             return false;
         }
+        visit(context_assign{AstContext::Store}, ast->optional);
     }
     return guard.commit();
 }
@@ -1477,6 +1471,7 @@ bool for_stmt(State & s, AstStmt & ast) {
             return false;
         }
     }
+    visit(context_assign{AstContext::Store}, ptr->target);
     return guard.commit();
 }
 
@@ -1506,6 +1501,21 @@ bool lambdef(State & s, AstExpr & ast) {
     return guard.commit();
 }
 
+void make_docstring(State & s, AstSuitePtr & suite_) {
+    if(s.options.docstrings && suite_->items.front()) {
+        if(suite_->items.front()->type == AstType::ExpressionStatement) {
+            AstExpressionStatementPtr exprstmt = std::static_pointer_cast<AstExpressionStatement>(suite_->items.front());
+            if(exprstmt->expr && exprstmt->expr->type == AstType::Str) {
+                AstStrPtr txt = std::static_pointer_cast<AstStr>(exprstmt->expr);
+                AstDocStringPtr ptr;
+                clone_location(txt, create(ptr));
+                ptr->doc = txt->value;
+                suite_->items[0] = ptr;
+            }
+        }
+    }
+}
+
 bool suite(State & s, AstStmt & ast) {
     // simple_stmt || expect(s, Token::NewLine) expect(s, Token::Indent) stmt+ expect(s, Token::Dedent)
     if(expect(s, Token::NewLine)) {
@@ -1524,18 +1534,7 @@ bool suite(State & s, AstStmt & ast) {
                     suite_->items.push_back(stmt_);
                     stmt_.reset();
                 }
-                if(s.options.docstrings && suite_->items.front()) {
-                    if(suite_->items.front()->type == AstType::ExpressionStatement) {
-                        AstExpressionStatementPtr exprstmt = std::static_pointer_cast<AstExpressionStatement>(suite_->items.front());
-                        if(exprstmt->expr && exprstmt->expr->type == AstType::Str) {
-                            AstStrPtr txt = std::static_pointer_cast<AstStr>(exprstmt->expr);
-                            AstDocStringPtr ptr;
-                            clone_location(txt, create(ptr));
-                            ptr->doc = txt->value;
-                            suite_->items[0] = ptr;
-                        }
-                    }
-                }
+                make_docstring(s, suite_);
                 if(!expect(s, Token::Dedent)) {
                     indentation_error(s, ast);
                     return false;
@@ -1639,7 +1638,6 @@ bool expr_stmt(State & s, AstStmt & ast) {
                         return false;
                     }
                     visit(context_assign{AstContext::Store}, target);
-                    visit(context_assign{AstContext::Load}, value);
                     ptr->value.items.push_back(value);
                 }
             }
@@ -1699,7 +1697,6 @@ bool decorator(State & s, AstExpr & ast) {
         syntax_error(s, ast, "Expected identifier after `@`");
         return false;
     }
-    visit(context_assign{AstContext::Load}, ptr->name);
     if(expect(s, TokenKind::LeftParen)) {
         arglist(s, ptr->arguments);
         if(!expect(s, TokenKind::RightParen)) {
@@ -1861,6 +1858,7 @@ bool file_input(State & s, AstModulePtr & ast) {
             return false;
         }
     }
+    make_docstring(s, ast->body);
     return guard.commit();
 }
 
@@ -2151,10 +2149,6 @@ bool trailer(State & s, AstExpr & ast, AstExpr target) {
             syntax_error(s, ast, "Expected identifier after `.`");
             return false;
         }
-        else {
-            assert(target);
-            visit(context_assign{AstContext::Load}, target);
-        }
     }
     else {
         return false;
@@ -2346,6 +2340,7 @@ bool list_for(State & s, AstExpr & ast) {
         syntax_error(s, ast, "Expected expression after `in`");
         return false;
     }
+    visit(context_assign{AstContext::Store}, forexpr->items);
     list_iter(s, forexpr->iter);
     return guard.commit();
 }
@@ -2371,6 +2366,7 @@ bool comp_for(State & s, AstExpr & ast) {
         syntax_error(s, ast, "Expected expression after `in`");
         return false;
     }
+    visit(context_assign{AstContext::Store}, forexpr->items);
     comp_iter(s, forexpr->iter);
     return guard.commit();
 }
