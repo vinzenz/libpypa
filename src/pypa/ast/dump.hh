@@ -25,8 +25,9 @@ namespace pypa {
         int depth_;
         ast_member_dump_revisit(int depth) : depth_(depth) {}
         template< typename T >
-        void operator() ( T const & v ) const {
+        bool operator() ( T const & v ) const {
             ast_member_dump<T>::dump(depth_, v);
+            return true;
         }
     };
 
@@ -52,6 +53,9 @@ namespace pypa {
 
         inline void dump_member_value(int depth, Ast const & v) {
             print_padding(depth);
+
+            // This is used to dispatch it to the right ast_member_dump<T>
+            // implementation using ast_member_dump_revisit
             visit_dump_internal(depth, v);
         }
 

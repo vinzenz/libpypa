@@ -31,25 +31,16 @@ enum class BlockType {
     Module
 };
 
-
-struct SymbolFlags {
-    bool global_explicit;
-    bool global_implicit;
-    bool local;
-    bool param;
-    bool used;
-    bool free;
-    bool free_class;
-    bool import;
-    bool cell;
-
-    bool global() const {
-        return global_explicit || global_implicit;
-    }
-
-    bool bound() const {
-        return local || param || import;
-    }
+enum SymbolFlags {
+    SymbolFlag_GlobalExplicit   = 1 << 0,
+    SymbolFlag_GlobalImplicit   = 1 << 1,
+    SymbolFlag_Local            = 1 << 2,
+    SymbolFlag_Param            = 1 << 3,
+    SymbolFlag_Used             = 1 << 4,
+    SymbolFlag_Free             = 1 << 5,
+    SymbolFlag_FreeClass        = 1 << 6,
+    SymbolFlag_Import           = 1 << 7,
+    SymbolFlag_Cell             = 1 << 8,
 };
 
 typedef std::shared_ptr<struct SymbolTableEntry> SymbolTableEntryPtr;
@@ -58,7 +49,7 @@ struct SymbolTableEntry {
     BlockType                               type;
     String                                  name;
 
-    std::unordered_map<String, SymbolFlags> symbols;
+    std::unordered_map<String, uint32_t>    symbols;
     std::unordered_set<String>              variables;
     std::list<SymbolTableEntryPtr>          children;
 
@@ -87,14 +78,13 @@ struct SymbolTable {
 
     FutureFeatures   future_features;
 
-    void push_entry(BlockType type, String name, int line);
+    void push_entry(BlockType type, String const & name, int line);
     void pop_entry();
 };
 
 typedef std::shared_ptr<SymbolTable> SymbolTablePtr;
-
-SymbolTablePtr create_from_ast(AstPtr const a, FutureFeatures const & future_features);
-SymbolTablePtr create_from_ast(Ast const & a, FutureFeatures const & future_features);
+typedef std::function<void(char const *, int, int, int, char const *, char const *)> SymbolErrorReportFun;
+void create_from_ast(SymbolTablePtr p, Ast const & a, SymbolErrorReportFun add_err);
 
 }
 

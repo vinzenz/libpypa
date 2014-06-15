@@ -343,9 +343,9 @@ PYPA_AST_EXPR(Repr) {
 PYPA_AST_MEMBERS1(Repr, value);
 
 PYPA_AST_STMT(Raise) {
-    AstExpr arg0;
-    AstExpr arg1;
-    AstExpr arg2;
+    AstExpr arg0; // type
+    AstExpr arg1; // inst
+    AstExpr arg2; // tback
 };
 PYPA_AST_MEMBERS3(Raise, arg0, arg1, arg2);
 

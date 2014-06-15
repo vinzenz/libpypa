@@ -118,7 +118,7 @@
         template<typename T, typename F>                                        \
         static void apply(T t, F f) {                                           \
             typedef typename AstTypeByID<AstType::TYPEID>::Type Type;           \
-            f(t);
+            if(!f(t)) return;
 
 
 #define PYPA_AST_MEMBER_VISIT_IMPL_END }}

@@ -43,9 +43,12 @@ namespace detail {
             void next(T) {}
 
             template< typename T >
-            void operator() (T t) {
-                (*f_)(t);
-                next(t);
+            bool operator() (T t) {
+                if((*f_)(t)) {
+                    next(t);
+                    return true;
+                }
+                return false;
             }
 
             template< typename T >
@@ -69,6 +72,13 @@ namespace detail {
 template< typename AstT, typename F >
 void walk_tree(AstT & t, F f, int depth = 0) {
     visit(detail::tree_walk_visitor<F>(&f, depth), t);
+}
+
+template< typename AstT, typename F >
+void walk_tree(std::vector<AstT> & t, F f, int depth = 0) {
+    for(auto & e : t) {
+        visit(detail::tree_walk_visitor<F>(&f, depth), e);
+    }
 }
 
 }

@@ -45,6 +45,14 @@ void report_error(State & s) {
     }
 }
 
+void add_symbol_error(State & s, char const * message, int line, int column, int reported_line, char const * reported_file_name, char const * reported_function) {
+    TokenInfo ti = s.tok_cur;
+    ti.line = line;
+    ti.column = column;
+    s.errors.push({ErrorType::SyntaxError, message, ti, {}, s.lexer->get_line(line), reported_line, reported_file_name, reported_function });
+    report_error(s);
+}
+
 void syntax_error_dbg(State & s, AstPtr ast, char const * message, int line = -1, char const * file = 0, char const * function = 0) {
     TokenInfo cur = top(s);
     if(ast && cur.line > ast->line) {
@@ -1864,7 +1872,9 @@ bool file_input(State & s, AstModulePtr & ast) {
             return false;
         }
     }
-    make_docstring(s, ast->body);
+    if(ast) {
+        make_docstring(s, ast->body);
+    }
     return guard.commit();
 }
 
@@ -2497,9 +2507,32 @@ bool single_input(State & s, AstStmt & ast) {
     return false;
 }
 
-bool Parser::parse(Lexer & lexer, AstModulePtr & ast, ParserOptions options /*= ParserOptions()*/) {
+SymbolTablePtr create_symbol_table(AstPtr const & a, State & s) {
+    if(!a) {
+        return {};
+    }
+
+    SymbolTablePtr table = std::make_shared<SymbolTable>();
+    table->future_features = s.future_features;
+    table->file_name = s.lexer->get_name();
+
+    create_from_ast(table, *a,
+                    [&s](char const * message, int line, int column, int reported_line, char const * reported_file_name, char const * reported_function) {
+                        add_symbol_error(s, message, line, column, reported_line, reported_file_name, reported_function);
+                    });
+    return table;
+}
+
+bool parse(Lexer & lexer,
+           AstModulePtr & ast,
+           SymbolTablePtr & symbols,
+           ParserOptions options /*= ParserOptions()*/) {
     State state{&lexer, {}, {}, {}, lexer.next(), {}, options};
-    return file_input(state, ast);
+    if(file_input(state, ast)) {
+        symbols = create_symbol_table(ast, state);
+        return true;
+    }
+    return false;
 }
 
 }

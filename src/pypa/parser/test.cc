@@ -23,11 +23,11 @@ int main(int argc, char const ** argv) {
         return 1;
     }
     pypa::AstModulePtr ast;
-    pypa::Parser parser;
+    pypa::SymbolTablePtr symbols;
     pypa::ParserOptions options;
     options.python3allowed = true;
     pypa::Lexer lexer(argv[1]);
-    if(parser.parse(lexer, ast, options)) {
+    if(pypa::parse(lexer, ast, symbols, options)) {
         printf("Parsing successfull\n");
         dump(ast);
     }
