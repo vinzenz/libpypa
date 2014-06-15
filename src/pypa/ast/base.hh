@@ -14,7 +14,7 @@
 #ifndef GUARD_PYPA_AST_BASE_HH_INCLUDED
 #define GUARD_PYPA_AST_BASE_HH_INCLUDED
 
-#include <pypa/ast/types.hh>
+#include <pypa/ast/dump.hh>
 #include <pypa/ast/macros.hh>
 
 namespace pypa {

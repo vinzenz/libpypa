@@ -24,3 +24,9 @@ src/pypa/parser/parser2.cc
 src/pypa/parser/parser_fwd.hh
 src/pypa/ast/tree_walker.hh
 src/pypa/ast/context_assign.hh
+src/pypa/parser/symbol_table.hh
+src/pypa/types.hh
+src/pypa/parser/future_features.hh
+src/pypa/parser/symbol_table.cc
+src/pypa/parser/symbol_table_visitor.hh
+src/pypa/ast/dump.hh

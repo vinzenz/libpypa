@@ -43,10 +43,12 @@ pypa_HEADERS=\
 pypaparserdir=$(includedir)/pypa/parser
 pypaparser_HEADERS=\
 	pypa/parser/apply.hh \
+	pypa/parser/future_features.hh \
 	pypa/parser/parser.hh \
 	pypa/parser/parser_fwd.hh \
 	pypa/parser/state.hh \
 	pypa/parser/symbol_table.hh \
+	pypa/parser/symbol_table_visitor.hh \
 	$(NULL)
 
 pypaastdir=$(includedir)/pypa/ast
@@ -55,6 +57,7 @@ pypaast_HEADERS=\
 	pypa/ast/ast_type.inl \
 	pypa/ast/base.hh \
 	pypa/ast/context_assign.hh \
+	pypa/ast/dump.hh \
 	pypa/ast/macros.hh \
 	pypa/ast/tree_walker.hh \
 	pypa/ast/types.hh \

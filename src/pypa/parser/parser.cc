@@ -898,13 +898,6 @@ bool arglist(State & s, AstArguments & ast) {
     return guard.commit();
 }
 
-bool single_input(State & s, AstStmt & ast) {
-    StateGuard guard(s, ast);
-    location(s, create(ast));
-    // expect(s, Token::NewLine) || simple_stmt || compound_stmt expect(s, Token::NewLine)
-    return guard.commit();
-}
-
 bool shift_expr(State & s, AstExpr & ast) {
     StateGuard guard(s, ast);
     // arith_expr ((expect(s, TokenKind::LeftShift)||expect(s, TokenKind::RightShift)) arith_expr)*
@@ -1855,7 +1848,6 @@ bool xor_expr(State & s, AstExpr & ast) {
 }
 
 bool file_input(State & s, AstModulePtr & ast) {
-    s.symbols.push_entry(BlockType::Module, s.lexer->get_name(), false, top(s).line);
     StateGuard guard(s, ast);
     location(s, create(ast));
     location(s, create(ast->body));
@@ -2178,13 +2170,13 @@ struct future_feature_mapping {
 
 bool import_from(State & s, AstStmt & ast) {
     future_feature_mapping future_mapping[] = {
-        {"nested_scopes", &s.symbols.future_features.nested_scopes },
-        {"generators", &s.symbols.future_features.generators },
-        {"division", &s.symbols.future_features.division },
-        {"absolute_import", &s.symbols.future_features.absolute_imports },
-        {"with_statement", &s.symbols.future_features.with_statement },
-        {"print_function", &s.symbols.future_features.print_function },
-        {"unicode_literals", &s.symbols.future_features.unicode_literals },
+        {"nested_scopes", &s.future_features.nested_scopes },
+        {"generators", &s.future_features.generators },
+        {"division", &s.future_features.division },
+        {"absolute_import", &s.future_features.absolute_imports },
+        {"with_statement", &s.future_features.with_statement },
+        {"print_function", &s.future_features.print_function },
+        {"unicode_literals", &s.future_features.unicode_literals },
         {0, 0}
     };
 
@@ -2320,26 +2312,6 @@ bool import_stmt(State & s, AstStmt & ast) {
     // import_name || import_from
     return import_name(s, ast)
         || import_from(s, ast);
-}
-
-bool eval_input(State & s, AstStmt & ast) {
-    StateGuard guard(s, ast);
-    AstExpressionStatementPtr ptr;
-    location(s, create(ptr));
-    ast = ptr;
-    // testlist expect(s, Token::NewLine)* expect(s, Token::End)
-    if(!testlist(s, ptr->expr)) {
-        return false;
-    }
-    while(expect(s, Token::NewLine)) {
-        // Nothing to be done, we just consume all NewLines
-        // until there's none anymore
-    }
-    if(!expect(s, Token::End)) {
-        syntax_error(s, ast, "Expected end of input");
-        return false;
-    }
-    return guard.commit();
 }
 
 bool arith_expr(State & s, AstExpr & ast) {
@@ -2488,6 +2460,42 @@ bool yield_stmt(State & s, AstStmt & ast) {
     return guard.commit();
 }
 
+bool eval_input(State & s, AstStmt & ast) {
+    StateGuard guard(s, ast);
+    AstExpressionStatementPtr ptr;
+    location(s, create(ptr));
+    ast = ptr;
+    // testlist expect(s, Token::NewLine)* expect(s, Token::End)
+    if(!testlist(s, ptr->expr)) {
+        return false;
+    }
+    while(expect(s, Token::NewLine)) {
+        // Nothing to be done, we just consume all NewLines
+        // until there's none anymore
+    }
+    if(!expect(s, Token::End)) {
+        syntax_error(s, ast, "Expected end of input");
+        return false;
+    }
+    return guard.commit();
+}
+
+bool single_input(State & s, AstStmt & ast) {
+    StateGuard guard(s, ast);
+    location(s, create(ast));
+    // expect(s, Token::NewLine) || simple_stmt || compound_stmt expect(s, Token::NewLine)
+    if(expect(s, Token::NewLine)) {
+        return guard.commit();
+    }
+    if(simple_stmt(s, ast)) {
+        return guard.commit();
+    }
+    if(compound_stmt(s, ast)) {
+        return expect(s, Token::NewLine)
+            && guard.commit();
+    }
+    return false;
+}
 
 bool Parser::parse(Lexer & lexer, AstModulePtr & ast, ParserOptions options /*= ParserOptions()*/) {
     State state{&lexer, {}, {}, {}, lexer.next(), {}, options};

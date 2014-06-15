@@ -16,7 +16,6 @@
 
 #include <pypa/parser/parser.hh>
 #include <pypa/parser/future_features.hh>
-#include <pypa/parser/symbol_table.hh>
 #include <string>
 #include <stack>
 
@@ -45,10 +44,10 @@ namespace {
         TokenInfo               tok_cur;
         std::stack<Error>       errors;
         ParserOptions           options;
-        SymbolTable             symbols;
+        FutureFeatures          future_features;
     };
 
-    TokenInfo pop(State & s) {
+    inline TokenInfo pop(State & s) {
         s.popped.push(s.tok_cur);
         if(s.tokens.empty()) {
             s.tok_cur = s.lexer->next();
@@ -61,17 +60,17 @@ namespace {
         return s.tok_cur;
     }
 
-    void unpop(State & s) {
+    inline void unpop(State & s) {
         s.tokens.push(s.tok_cur);
         s.tok_cur = s.popped.top();
         s.popped.pop();
     }
 
-    void save(State & s) {
+    inline void save(State & s) {
         s.savepoints.push(s.popped.size());
     }
 
-    void revert(State & s) {
+    inline void revert(State & s) {
         if(!s.savepoints.empty()) {
             while(s.popped.size() != s.savepoints.top()) {
                 unpop(s);
@@ -80,7 +79,7 @@ namespace {
         }
     }
 
-    void pop_savepoint(State & s) {
+    inline void pop_savepoint(State & s) {
         if(!s.savepoints.empty()) {
             s.savepoints.pop();
         }
@@ -97,87 +96,87 @@ namespace {
         State * s_;
     };
 
-    void commit(State & s) {
+    inline void commit(State & s) {
         s.popped = {};
     }
 
-    TokenInfo const & top(State & s) {
+    inline TokenInfo const & top(State & s) {
         return s.tok_cur;
     }
 
-    TokenKind kind(TokenInfo const & tok) {
+    inline TokenKind kind(TokenInfo const & tok) {
         return tok.ident.kind();
     }
 
-    TokenClass cls(TokenInfo const & tok) {
+    inline TokenClass cls(TokenInfo const & tok) {
         return tok.ident.cls();
     }
 
-    Token token(TokenInfo const & tok) {
+    inline Token token(TokenInfo const & tok) {
         return tok.ident.id();
     }
 
     template< typename T >
-    std::shared_ptr<T> & create(std::shared_ptr<T> & t) {
+    inline std::shared_ptr<T> & create(std::shared_ptr<T> & t) {
         return (t = std::make_shared<T>());
     }
 
     template< typename U, typename T >
-    std::shared_ptr<U> create(std::shared_ptr<T> & t) {
+    inline std::shared_ptr<U> create(std::shared_ptr<T> & t) {
         return std::static_pointer_cast<U>(t = std::make_shared<U>());
     }
 
-    void location(State & s, AstPtr a) {
+    inline void location(State & s, AstPtr a) {
         a->line = top(s).line;
         a->column = top(s).column;
     }
 
-    void location(State & s, Ast & a) {
+    inline void location(State & s, Ast & a) {
         a.line = top(s).line;
         a.column = top(s).column;
     }
 
-    void clone_location(Ast & source, Ast & target) {
+    inline void clone_location(Ast & source, Ast & target) {
         target.column = source.column;
         target.line = source.line;
     }
 
-    void clone_location(AstPtr source, AstPtr target) {
+    inline void clone_location(AstPtr source, AstPtr target) {
         if(source && target) {
             clone_location(*source, *target);
         }
     }
 
-    bool is(TokenInfo const & info, Token tok) {
+    inline bool is(TokenInfo const & info, Token tok) {
         return token(info) == tok;
     }
 
-    bool is(TokenInfo const & info, TokenKind k) {
+    inline bool is(TokenInfo const & info, TokenKind k) {
         return kind(info) == k;
     }
 
-    bool is(TokenInfo const & info, TokenClass c) {
+    inline bool is(TokenInfo const & info, TokenClass c) {
         return cls(info) == c;
     }
 
-    bool is(State & s, Token tok) {
+    inline bool is(State & s, Token tok) {
         return is(top(s), tok);
     }
 
-    bool is(State & s, TokenKind k) {
+    inline bool is(State & s, TokenKind k) {
         return is(top(s), k);
     }
 
-    bool is(State & s, TokenClass c) {
+    inline bool is(State & s, TokenClass c) {
         return is(top(s), c);
     }
 
-    bool end(State & s) {
+    inline bool end(State & s) {
         return is(s, Token::End);
     }
 
     template< typename T >
-    bool expect(State & s, T t) {
+    inline bool expect(State & s, T t) {
         if(is(top(s), t)) {
             pop(s);
             return true;
@@ -186,7 +185,7 @@ namespace {
     }
 
     template< typename T >
-    bool consume_value(State & s, T t, String & v) {
+    inline bool consume_value(State & s, T t, String & v) {
         if(is(s, t)) {
             v = top(s).value;
             pop(s);

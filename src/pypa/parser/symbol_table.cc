@@ -12,23 +12,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 #include <pypa/parser/symbol_table.hh>
+#include <pypa/ast/visitor.hh>
 #include <cassert>
 
 namespace pypa {
-    void SymbolTable::push_entry(BlockType type, String name, bool nested, int line) {
+    void SymbolTable::push_entry(BlockType type, String name, int line) {
         auto e          = std::make_shared<SymbolTableEntry>();
         e->id           = ++last_id;
         e->type         = type;
         e->name         = name;
-        e->is_nested    = nested;
+        e->is_nested    = false;
         e->start_line   = line;
         symbols[e->id] = e;
+
         if(!module) {
             module = e;
         }
-        if(nested) {
-            current->children.push_back(e);
+
+        if(current && (current->is_nested || type == BlockType::Function)) {
+            e->is_nested = true;
         }
+
         stack.push(e);
         current = e;
     }
@@ -43,4 +47,19 @@ namespace pypa {
             current = module; // This should never be necessary but who knows
         }
     }
+
+    SymbolTablePtr create_from_ast(AstPtr const a, FutureFeatures const & future_features) {
+        if(!a) {
+            return SymbolTablePtr();
+        }
+        return create_from_ast(*a, future_features);
+    }
+
+    SymbolTablePtr create_from_ast(Ast const & a, FutureFeatures const & future_features) {
+        SymbolTablePtr table = std::make_shared<SymbolTable>();
+        table->future_features = future_features;
+
+        return table;
+    }
+
 }

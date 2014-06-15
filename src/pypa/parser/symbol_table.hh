@@ -20,7 +20,7 @@
 #include <unordered_set>
 #include <unordered_map>
 
-#include <pypa/types.hh>
+#include <pypa/ast/ast.hh>
 #include <pypa/parser/future_features.hh>
 
 namespace pypa {
@@ -87,9 +87,14 @@ struct SymbolTable {
 
     FutureFeatures   future_features;
 
-    void push_entry(BlockType type, String name, bool nested, int line);
+    void push_entry(BlockType type, String name, int line);
     void pop_entry();
 };
+
+typedef std::shared_ptr<SymbolTable> SymbolTablePtr;
+
+SymbolTablePtr create_from_ast(AstPtr const a, FutureFeatures const & future_features);
+SymbolTablePtr create_from_ast(Ast const & a, FutureFeatures const & future_features);
 
 }
 
