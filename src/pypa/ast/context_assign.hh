@@ -27,10 +27,11 @@ struct context_assign {
     }
 
     void operator() (AstTuple & tuple) {
-        tuple.context = context;
-        // Should the elements also be assigned?
+        // If AstContext::Param then tuple and elements should be AstContext::Store
+        // That's the behaviour of Python 2.7
+        tuple.context = context == AstContext::Param ? AstContext::Store : context;
         for(auto & e : tuple.elements) {
-            visit(*this, e);
+            visit(context_assign{tuple.context}, e);
         }
     }
 

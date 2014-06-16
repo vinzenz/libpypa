@@ -828,9 +828,7 @@ bool parameters(State & s, AstArguments & ast) {
         return false;
     }
 
-    for(auto & a : ast.args) {
-        visit(context_assign{AstContext::Param}, a);
-    }
+    visit(context_assign{AstContext::Param}, ast.args);
     for(auto & a : ast.arguments) {
         visit(context_assign{AstContext::Param}, a);
     }
@@ -870,11 +868,10 @@ bool arglist(State & s, AstArguments & ast) {
     }
     expect(s, TokenKind::Comma);
     while(expect(s, TokenKind::Star)) {
-        if(!test(s, item)) {
+        if(!test(s, ast.args)) {
             syntax_error(s, ast, "Expected expression after `*`");
             return false;
         }
-        ast.args.push_back(item);
         if(!expect(s, TokenKind::Comma)) {
             break;
         }
@@ -2029,20 +2026,18 @@ bool while_stmt(State & s, AstStmt & ast) {
 
 bool fplist(State & s, AstExpr & ast) {
     StateGuard guard(s, ast);
-    AstExpressionsPtr exprs;
-    location(s, create(exprs));
-    ast = exprs;
+    AstTuplePtr tuple;
+    location(s, create(tuple));
+    ast = tuple;
     // fpdef (expect(s, TokenKind::Comma) fpdef)* [expect(s, TokenKind::Comma)]
     AstExpr temp;
     if(fpdef(s, temp)) {
-        exprs->items.push_back(temp);
+        tuple->elements.push_back(temp);
         while(expect(s, TokenKind::Comma)) {
             if(!fpdef(s, temp)) {
                 break;
             }
-        }
-        if(exprs->items.size() == 1) {
-            ast = exprs->items.front();
+            tuple->elements.push_back(temp);
         }
         return guard.commit();
     }
@@ -2099,12 +2094,10 @@ bool varargslist(State & s, AstArguments & ast) {
         }
     }
     if(expect(s, TokenKind::Star)) {
-        AstExpr arg;
-        if(!get_name(s, arg)) {
+        if(!get_name(s, ast.args)) {
             syntax_error(s, ast, "Expected identifier after `*`");
             return false;
         }
-        ast.args.push_back(arg);
         expect(s, TokenKind::Comma);
     }
 
@@ -2515,10 +2508,11 @@ SymbolTablePtr create_symbol_table(AstPtr const & a, State & s) {
     SymbolTablePtr table = std::make_shared<SymbolTable>();
     table->future_features = s.future_features;
     table->file_name = s.lexer->get_name();
-
     create_from_ast(table, *a,
-                    [&s](char const * message, int line, int column, int reported_line, char const * reported_file_name, char const * reported_function) {
-                        add_symbol_error(s, message, line, column, reported_line, reported_file_name, reported_function);
+                    [&s](Error e) {
+                        e.line = s.lexer->get_line(e.cur.line);
+                        s.errors.push(e);
+                        report_error(s);
                     });
     return table;
 }

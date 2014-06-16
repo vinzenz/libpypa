@@ -22,6 +22,7 @@
 
 #include <pypa/ast/ast.hh>
 #include <pypa/parser/future_features.hh>
+#include <pypa/parser/error.hh>
 
 namespace pypa {
 
@@ -34,6 +35,7 @@ enum class BlockType {
 enum SymbolFlags {
     SymbolFlag_GlobalExplicit   = 1 << 0,
     SymbolFlag_GlobalImplicit   = 1 << 1,
+    SymbolFlag_Global           = (SymbolFlag_GlobalImplicit | SymbolFlag_GlobalExplicit),
     SymbolFlag_Local            = 1 << 2,
     SymbolFlag_Param            = 1 << 3,
     SymbolFlag_Used             = 1 << 4,
@@ -41,11 +43,12 @@ enum SymbolFlags {
     SymbolFlag_FreeClass        = 1 << 6,
     SymbolFlag_Import           = 1 << 7,
     SymbolFlag_Cell             = 1 << 8,
+    SymbolFlag_Bound            = (SymbolFlag_Import | SymbolFlag_Local | SymbolFlag_Param)
 };
 
 typedef std::shared_ptr<struct SymbolTableEntry> SymbolTableEntryPtr;
 struct SymbolTableEntry {
-    uint64_t                                id;
+    void *                                  id;
     BlockType                               type;
     String                                  name;
 
@@ -68,9 +71,9 @@ struct SymbolTableEntry {
 
 struct SymbolTable {
     String file_name;
-    uint64_t last_id;
 
-    std::unordered_map<uint64_t, SymbolTableEntryPtr> symbols;
+    String current_class;
+    std::unordered_map<void *, SymbolTableEntryPtr> symbols;
     std::stack<SymbolTableEntryPtr> stack;
 
     SymbolTableEntryPtr module;
@@ -78,12 +81,12 @@ struct SymbolTable {
 
     FutureFeatures   future_features;
 
-    void push_entry(BlockType type, String const & name, int line);
-    void pop_entry();
+    void enter_block(BlockType type, String const & name, Ast &);
+    void leave_block();
 };
 
 typedef std::shared_ptr<SymbolTable> SymbolTablePtr;
-typedef std::function<void(char const *, int, int, int, char const *, char const *)> SymbolErrorReportFun;
+typedef std::function<void(pypa::Error)> SymbolErrorReportFun;
 void create_from_ast(SymbolTablePtr p, Ast const & a, SymbolErrorReportFun add_err);
 
 }

@@ -59,7 +59,7 @@ PYPA_AST_TYPE_DECL_DERIVED(Arguments) {
     AstExprList arguments;
     AstExprList defaults;
     AstExpr     kwargs;
-    AstExprList args;
+    AstExpr     args;
     AstExprList keywords;
 };
 DEF_AST_TYPE_BY_ID1(Arguments);

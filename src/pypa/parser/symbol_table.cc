@@ -17,32 +17,33 @@
 #include <cassert>
 
 namespace pypa {
-    void SymbolTable::push_entry(BlockType type, String const & name, int line) {
+    void SymbolTable::enter_block(BlockType type, String const & name, Ast & a) {
         auto e          = std::make_shared<SymbolTableEntry>();
-        e->id           = ++last_id;
+        e->id           = &a;
         e->type         = type;
         e->name         = name;
         e->is_nested    = false;
-        e->start_line   = line;
+        e->start_line   = a.line;
         symbols[e->id] = e;
 
-        if(!module) {
+        if(type == BlockType::Module) {
             module = e;
         }
 
-        if(current && (current->is_nested || type == BlockType::Function)) {
+        if(current && (current->is_nested || current->type == BlockType::Function)) {
             e->is_nested = true;
         }
-
-        stack.push(e);
+        if(current) {
+            stack.push(current);
+        }
         current = e;
     }
 
-    void SymbolTable::pop_entry() {
+    void SymbolTable::leave_block() {
         assert(!stack.empty());
-        stack.pop();
         if(!stack.empty()) {
             current = stack.top();
+            stack.pop();
         }
         else {
             current = module; // This should never be necessary but who knows

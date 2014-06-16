@@ -153,6 +153,10 @@ namespace pypa {
         , cls_(cls)
         {}
 
+        TokenIdent()
+        : TokenIdent(Token::Invalid, TokenKind::Error, TokenClass::Default)
+        {}
+
         Token id() const {
             return id_;
         }

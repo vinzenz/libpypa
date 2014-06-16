@@ -21,21 +21,6 @@
 
 namespace pypa {
 namespace {
-    enum class ErrorType {
-        SyntaxError,
-        IndentationError
-    };
-    struct Error {
-        ErrorType    type;
-        String       message;
-        TokenInfo    cur;
-        AstPtr       ast;
-        std::string  line;
-        int          detected_line;
-        char const * detected_file;
-        char const * detected_function;
-    };
-
     struct State {
         Lexer *                 lexer;
         std::stack<TokenInfo>   tokens;
