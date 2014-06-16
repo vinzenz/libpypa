@@ -37,7 +37,7 @@ void report_error(State & s) {
     fprintf(stderr, "  File \"%s\", line %d\n    %s\n    ", s.lexer->get_name().c_str(), e.cur.line, e.line.c_str());
     if(e.cur.column == 0) ++e.cur.column;
     for(int i = 0; i < e.cur.column - 1; ++i) {
-        printf(" ");
+        fputc(' ', stderr);
     }
     fprintf(stderr, "^\n%s: %s", e.type == ErrorType::SyntaxError ? "SyntaxError" : "IndentationError", e.message.c_str());
     if(e.detected_line != -1) {
@@ -228,13 +228,16 @@ bool dotted_as_names(State & s, AstExpr & ast) {
 
 bool import_as_name(State & s, AstExpr & ast) {
     StateGuard guard(s, ast);
-    AstAliasPtr ptr;
-    location(s, create(ptr));
-    ast = ptr;
-    if(get_name(s, ptr->name))
+    AstExpr ptr;
+    if(get_name(s, ptr))
     {
+        ast = ptr;
         if(expect(s, Token::KeywordAs)) {
-            if(!get_name(s, ptr->as_name)) {
+            AstAliasPtr alias;
+            clone_location(ptr, create(alias));
+            alias->name = ptr;
+            ast = alias;
+            if(!get_name(s, alias->as_name)) {
                 syntax_error(s, ast, "Expected identifier after `as`");
                 return false;
             }
@@ -306,21 +309,28 @@ bool try_stmt(State & s, AstStmt & ast) {
 
 bool dotted_name(State & s, AstExpr & ast) {
     StateGuard guard(s, ast);
-    AstAttributePtr attribute;
-    location(s, create(attribute));
-    ast = attribute;
-    if(get_name(s, attribute->value)) {
+    if(get_name(s, ast)) {
         if(expect(s, TokenKind::Dot)) {
-            return dotted_name(s, attribute->attribute)
-                && guard.commit();
+            assert(ast && ast->type == AstType::Name);
+            AstNamePtr name = std::static_pointer_cast<AstName>(ast);
+            AstExpr trailing_name;
+            if(dotted_name(s, trailing_name)) {
+                assert(trailing_name && trailing_name->type == AstType::Name);
+                AstName & trail = *std::static_pointer_cast<AstName>(trailing_name);
+                name->id += "." + trail.id;
+                return guard.commit();
+            }
+            else {
+                syntax_error(s, name, "Expected identifier after `.`");
+            }
         }
         else {
-            ast = attribute->value;
             return guard.commit();
         }
     }
     return false;
 }
+
 
 bool small_stmt(State & s, AstStmt & ast) {
     return print_stmt(s, ast)
@@ -2213,6 +2223,10 @@ bool import_from(State & s, AstStmt & ast) {
                 syntax_error(s, ast, "future feature * is not defined");
                 return false;
             }
+            AstNamePtr ptr;
+            location(s, create(ptr));
+            ptr->id = "*";
+            impfrom->names = ptr;
             // ok
         }
         // || expect(s, TokenKind::LeftParen) import_as_names expect(s, TokenKind::RightParen)
@@ -2232,15 +2246,15 @@ bool import_from(State & s, AstStmt & ast) {
         else {
             return false;
         }
-        if(impfrom->names) {
+        if(is_future_import && impfrom->names) {
             auto future_check = [&s, &future_mapping](AstExpr e) -> bool {
                 future_feature_mapping * iter = future_mapping;
                 if(!e) {
                     assert("Invalid parameter" && false);
                     return false;
                 }
-                assert(e->type == AstType::Alias);
-                auto n = std::static_pointer_cast<AstAlias>(e)->name;
+                assert(e->type == AstType::Alias || e->type == AstType::Name);
+                auto n = e->type == AstType::Name ? e : std::static_pointer_cast<AstAlias>(e)->name;
                 if(n) {
                     assert(n->type == AstType::Name);
                     auto & name = *std::static_pointer_cast<AstName>(n);
@@ -2292,6 +2306,10 @@ bool import_as_names(State & s, AstExpr & ast) {
         if(!expect(s, TokenKind::Comma)) {
             break;
         }
+    }
+    if(!is(s, TokenKind::NewLine) && !is(s, TokenKind::SemiColon)) {
+        syntax_error(s, ast, "Unexpected token");
+        return false;
     }
     return !exprs->items.empty() && guard.commit();
 }
