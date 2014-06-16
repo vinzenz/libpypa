@@ -265,6 +265,10 @@ namespace pypa {
             }
         }
 
+        bool operator() (AstAlias & a) {
+
+        }
+
         bool operator() (AstName & n) {
             add_def(n.id, n.context == AstContext::Load ? SymbolFlag_Used : SymbolFlag_Local, n);
             return false;

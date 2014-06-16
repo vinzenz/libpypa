@@ -46,6 +46,13 @@ enum SymbolFlags {
     SymbolFlag_Bound            = (SymbolFlag_Import | SymbolFlag_Local | SymbolFlag_Param)
 };
 
+enum OptimizeFlags {
+    OptimizeFlag_ImportStar     = 1 << 0,
+    OptimizeFlag_Exec           = 1 << 1,
+    OptimizeFlag_BareExec       = 1 << 2,
+    OptimizeFlag_TopLevel       = 1 << 3, // Top level names including eval and exec
+};
+
 typedef std::shared_ptr<struct SymbolTableEntry> SymbolTableEntryPtr;
 struct SymbolTableEntry {
     void *                                  id;
@@ -67,6 +74,9 @@ struct SymbolTableEntry {
                                 // including free refs to globals
     int start_line;             // Line number where the block starts
     int temp_name_count;        // number of temporary variables (e.g. in list comp)
+
+    uint32_t unoptimized;       // optimization flags
+    int opt_last_line;          // last line of exec or import
 };
 
 struct SymbolTable {
