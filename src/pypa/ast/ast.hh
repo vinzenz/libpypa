@@ -26,9 +26,10 @@ PYPA_AST_MEMBERS1(Expressions, items);
 
 PYPA_AST_EXPR(Name) {
     AstContext  context;
+    bool        dotted;
     String      id;
 };
-PYPA_AST_MEMBERS2(Name, context, id);
+PYPA_AST_MEMBERS3(Name, context, dotted, id);
 
 PYPA_AST_EXPR(Keyword) {
     AstExpr name;

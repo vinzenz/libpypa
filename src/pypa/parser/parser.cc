@@ -318,6 +318,7 @@ bool dotted_name(State & s, AstExpr & ast) {
                 assert(trailing_name && trailing_name->type == AstType::Name);
                 AstName & trail = *std::static_pointer_cast<AstName>(trailing_name);
                 name->id += "." + trail.id;
+                name->dotted = true;
                 return guard.commit();
             }
             else {
