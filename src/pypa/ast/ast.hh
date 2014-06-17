@@ -134,12 +134,6 @@ typedef AstComprehensionPtr      AstComprPtr;
 typedef std::vector<AstComprPtr> AstComprList;
 PYPA_AST_MEMBERS3(Comprehension, target, iter, ifs);
 
-PYPA_AST_EXPR(Decorator) {
-    AstExpr      name;
-    AstArguments arguments;
-};
-PYPA_AST_MEMBERS2(Decorator, arguments, name);
-
 PYPA_AST_STMT(Delete) {
     AstExpr targets;
 };

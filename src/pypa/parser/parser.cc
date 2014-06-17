@@ -1701,7 +1701,7 @@ bool continue_stmt(State & s, AstStmt & ast) {
 
 bool decorator(State & s, AstExpr & ast) {
     StateGuard guard(s, ast);
-    AstDecoratorPtr ptr;
+    AstCallPtr ptr;
     location(s, create(ptr));
     ast = ptr;
     // expect(s, TokenKind::At) dotted_name
@@ -1709,16 +1709,19 @@ bool decorator(State & s, AstExpr & ast) {
     if(!expect(s, TokenKind::At)) {
         return false;
     }
-    if(!dotted_as_name(s, ptr->name)) {
+    if(!dotted_name(s, ptr->function)) {
         syntax_error(s, ast, "Expected identifier after `@`");
         return false;
     }
     if(expect(s, TokenKind::LeftParen)) {
-        arglist(s, ptr->arguments);
+        arglist(s, ptr->arglist);
         if(!expect(s, TokenKind::RightParen)) {
             syntax_error(s, ast, "Expected `)`");
             return false;
         }
+    }
+    else {
+        ast = ptr->function;
     }
     if(!expect(s, Token::NewLine)) {
         syntax_error(s, ast, "Expected new line after decorator usage");

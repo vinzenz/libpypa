@@ -185,7 +185,7 @@ namespace pypa {
             add_def(name, SymbolFlag_Local, f);
 
             walk_tree(f.args.defaults, *this);
-
+            walk_tree(f.decorators, *this);
             table->enter_block(BlockType::Function, name, f);
             // TODO: Special arguments handling
             arguments(f.args);
@@ -222,7 +222,7 @@ namespace pypa {
             add_def(name, SymbolFlag_Local, c);
 
             walk_tree(c.bases, *this);
-
+            walk_tree(c.decorators, *this);
             table->enter_block(BlockType::Class, name, c);
             String current_class;
             current_class.swap(table->current_class);
