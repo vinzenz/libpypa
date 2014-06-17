@@ -80,7 +80,7 @@ namespace pypa {
         }
 
         inline void dump_member_value(int depth, double const & v) {
-            printf("%g\n", int64_t(v));
+            printf("%g\n", v);
         }
 
         inline void dump_member_value(int depth, AstBoolOpType const & v) {

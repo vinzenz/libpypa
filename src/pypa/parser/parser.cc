@@ -1860,29 +1860,6 @@ bool xor_expr(State & s, AstExpr & ast) {
     return generic_binop_expr(s, ast, TokenKind::CircumFlex, AstBinOpType::BitXor, and_expr);
 }
 
-bool file_input(State & s, AstModulePtr & ast) {
-    StateGuard guard(s, ast);
-    location(s, create(ast));
-    location(s, create(ast->body));
-    // (expect(s, Token::NewLine) || stmt)* expect(s, Token::End)
-    while(!is(s, Token::End)) {
-        AstStmt statement;
-        if(expect(s, Token::NewLine)) {
-            continue;
-        }
-        else if(stmt(s, statement)) {
-            ast->body->items.push_back(statement);
-        }
-        else {
-            return false;
-        }
-    }
-    if(ast) {
-        make_docstring(s, ast->body);
-    }
-    return guard.commit();
-}
-
 bool or_test(State & s, AstExpr & ast) {
     return generic_boolop_expr(s, ast, Token::KeywordOr, AstBoolOpType::Or, and_test);
 }
@@ -2483,13 +2460,17 @@ bool yield_stmt(State & s, AstStmt & ast) {
     return guard.commit();
 }
 
-bool eval_input(State & s, AstStmt & ast) {
+bool eval_input(State & s, AstModulePtr & ast) {
     StateGuard guard(s, ast);
-    AstExpressionStatementPtr ptr;
-    location(s, create(ptr));
-    ast = ptr;
+    location(s, create(ast));
+    location(s, create(ast->body));
+    AstExpressionStatementPtr expr;
+    location(s, create(expr));
+    ast->body->items.push_back(expr);
+    ast->kind = AstModuleKind::Expression;
+
     // testlist expect(s, Token::NewLine)* expect(s, Token::End)
-    if(!testlist(s, ptr->expr)) {
+    if(!testlist(s, expr->expr)) {
         return false;
     }
     while(expect(s, Token::NewLine)) {
@@ -2503,21 +2484,50 @@ bool eval_input(State & s, AstStmt & ast) {
     return guard.commit();
 }
 
-bool single_input(State & s, AstStmt & ast) {
+bool single_input(State & s, AstModulePtr & ast) {
     StateGuard guard(s, ast);
     location(s, create(ast));
+    location(s, create(ast->body));
+    ast->kind = AstModuleKind::Interactive;
     // expect(s, Token::NewLine) || simple_stmt || compound_stmt expect(s, Token::NewLine)
     if(expect(s, Token::NewLine)) {
         return guard.commit();
     }
-    if(simple_stmt(s, ast)) {
+    AstStmt stmt;
+    if(simple_stmt(s, stmt)) {
+        ast->body->items.push_back(stmt);
         return guard.commit();
     }
-    if(compound_stmt(s, ast)) {
+    if(compound_stmt(s, stmt)) {
+        ast->body->items.push_back(stmt);
         return expect(s, Token::NewLine)
             && guard.commit();
     }
     return false;
+}
+
+bool file_input(State & s, AstModulePtr & ast) {
+    StateGuard guard(s, ast);
+    location(s, create(ast));
+    location(s, create(ast->body));
+    ast->kind = AstModuleKind::Module;
+    // (expect(s, Token::NewLine) || stmt)* expect(s, Token::End)
+    while(!is(s, Token::End)) {
+        AstStmt statement;
+        if(expect(s, Token::NewLine)) {
+            continue;
+        }
+        else if(stmt(s, statement)) {
+            ast->body->items.push_back(statement);
+        }
+        else {
+            return false;
+        }
+    }
+    if(ast) {
+        make_docstring(s, ast->body);
+    }
+    return guard.commit();
 }
 
 SymbolTablePtr create_symbol_table(AstPtr const & a, State & s) {

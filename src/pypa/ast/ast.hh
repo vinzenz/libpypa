@@ -204,13 +204,6 @@ PYPA_AST_STMT(For) {
 };
 PYPA_AST_MEMBERS4(For, body, orelse, target, iter);
 
-PYPA_AST_EXPR(ForExpr) {
-    AstExpr items;
-    AstExpr generators;
-    AstExpr iter;
-};
-PYPA_AST_MEMBERS3(ForExpr, items, generators, iter);
-
 PYPA_AST_STMT(FunctionDef) {
    AstExprList  decorators;
    AstExpr      name;

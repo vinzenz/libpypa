@@ -42,7 +42,7 @@ namespace pypa {
     bool dotted_as_name(State & s, AstExpr & ast);
     bool dotted_as_names(State & s, AstExpr & ast);
     bool dotted_name(State & s, AstExpr & ast);
-    bool eval_input(State & s, AstStmt & ast);
+    bool eval_input(State & s, AstModulePtr & ast);
     bool except_clause(State & s, AstExpr & ast);
     bool exec_stmt(State & s, AstStmt & ast);
     bool expr(State & s, AstExpr & ast);
@@ -78,7 +78,7 @@ namespace pypa {
     bool return_stmt(State & s, AstStmt & ast);
     bool shift_expr(State & s, AstExpr & ast);
     bool simple_stmt(State & s, AstStmt & ast);
-    bool single_input(State & s, AstStmt & ast);
+    bool single_input(State & s, AstModulePtr & ast);
     bool sliceop(State & s, AstExpr & ast);
     bool small_stmt(State & s, AstStmt & ast);
     bool stmt(State & s, AstStmt & ast);
