@@ -217,6 +217,53 @@ namespace pypa {
             return false;
         }
 
+        void handle_comprehension(bool generator, String const & scope_name, Ast & e,
+                                  AstExprList & generators, AstExpr element, AstExpr value) {
+            bool needs_tmp = !generator;
+
+            assert(!generators.empty() && generators.front());
+
+            AstComprehension & outermost = *std::static_pointer_cast<AstComprehension>(generators.front());
+            walk_tree(*outermost.iter, *this);
+
+            table->enter_block(BlockType::Function, scope_name, e);
+
+            table->current->is_generator = generator;
+            implicit_arg(0, e);
+
+            if(needs_tmp) {
+                char tmpname[32]{};
+                snprintf(tmpname, sizeof(tmpname), "_[%d]", ++table->current->temp_name_count);
+                add_def(tmpname, SymbolFlag_Local, e);
+            }
+            walk_tree(outermost.target, *this);
+            walk_tree(outermost.ifs, *this);
+            for(size_t i = 1; i < generators.size(); ++i) {
+                walk_tree(*generators[i], *this);
+            }
+            if(value) {
+                walk_tree(*value, *this);
+            }
+            walk_tree(*element, *this);
+
+            table->leave_block();
+        }
+
+        bool operator() (AstDictComp & d) {
+            handle_comprehension(false, "dictcomp", d, d.generators, d.key, d.value);
+            return false;
+        }
+
+        bool operator() (AstSetComp & s) {
+            handle_comprehension(false, "setcomp", s, s.generators, s.element, {});
+            return false;
+        }
+
+        bool operator() (AstGenerator & g) {
+            handle_comprehension(false, "genexpr", g, g.generators, g.element, {});
+            return false;
+        }
+
         bool operator() (AstClassDef & c) {
             String const & name = get_name(c.name);     // We can keep the ref
             add_def(name, SymbolFlag_Local, c);
@@ -290,11 +337,23 @@ namespace pypa {
                     PYPA_ADD_SYMBOL_WARN("Import * only allowed at module level", n);
                 }
                 table->current->unoptimized |= OptimizeFlag_ImportStar;
+                table->current->opt_last_line = n.line;
             }
             else {
                 add_def(name, SymbolFlag_Import, a);
             }
             return false;
+        }
+
+        bool operator() (AstExec & e) {
+            table->current->opt_last_line = e.line;
+            if(e.globals) {
+                table->current->unoptimized |= OptimizeFlag_Exec;
+            }
+            else {
+                table->current->unoptimized |= OptimizeFlag_BareExec;
+            }
+            return true;
         }
 
         bool operator() (AstName & n) {
