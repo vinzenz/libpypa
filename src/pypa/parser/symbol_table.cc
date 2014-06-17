@@ -40,7 +40,6 @@ namespace pypa {
     }
 
     void SymbolTable::leave_block() {
-        assert(!stack.empty());
         if(!stack.empty()) {
             current = stack.top();
             stack.pop();

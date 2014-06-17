@@ -98,7 +98,6 @@ struct SymbolTable {
 typedef std::shared_ptr<SymbolTable> SymbolTablePtr;
 typedef std::function<void(pypa::Error)> SymbolErrorReportFun;
 void create_from_ast(SymbolTablePtr p, Ast const & a, SymbolErrorReportFun add_err);
-
 }
 
 #endif // GUARD_PYPA_PARSER_SYMBOL_TABLE_HH_INCLUDED

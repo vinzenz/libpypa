@@ -143,6 +143,22 @@ namespace pypa {
         return "UNKNOWN AstCompareOpType";
     }
 
+    enum class AstModuleKind {
+        Module,
+        Expression,
+        Interactive,
+        Suite
+    };
+
+    inline char const * to_string(AstModuleKind o) {
+        switch(o) {
+        case AstModuleKind::Module:         return "Module";
+        case AstModuleKind::Expression:     return "Expression";
+        case AstModuleKind::Interactive:    return "Interactive";
+        case AstModuleKind::Suite:          return "Suite";
+        }
+    }
+
     enum class AstType {
         Invalid = -1,
     #undef PYPA_AST_TYPE

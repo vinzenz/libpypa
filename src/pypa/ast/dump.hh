@@ -99,6 +99,10 @@ namespace pypa {
             printf("%s\n", to_string(v));
         }
 
+        inline void dump_member_value(int depth, AstModuleKind const & v) {
+            printf("%s\n", to_string(v));
+        }
+
         inline void dump_member_value(int depth, AstContext const & v) {
             printf("%s\n", to_string(v));
         }

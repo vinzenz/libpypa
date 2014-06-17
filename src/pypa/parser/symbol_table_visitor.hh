@@ -303,7 +303,10 @@ namespace pypa {
 
         bool operator() (AstModule & m) {
             table->enter_block(BlockType::Module, table->file_name, m);
-            return true;
+            table->current->unoptimized = OptimizeFlag_TopLevel;
+            walk_tree(m.body, *this);
+            table->leave_block();
+            return false;
         }
 
         bool operator() (AstYieldExpr & y) {

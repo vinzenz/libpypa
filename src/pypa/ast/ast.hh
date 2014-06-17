@@ -306,10 +306,11 @@ PYPA_AST_EXPR(Complex) {
 PYPA_AST_MEMBERS2(Complex, real, imag);
 
 PYPA_AST_TYPE_DECL_DERIVED(Module) {
-    AstSuitePtr body;
+    AstSuitePtr     body;
+    AstModuleKind   kind;
 };
 DEF_AST_TYPE_BY_ID1(Module);
-PYPA_AST_MEMBERS1(Module, body);
+PYPA_AST_MEMBERS2(Module, body, kind);
 
 PYPA_AST_STMT(Pass) {
 };
