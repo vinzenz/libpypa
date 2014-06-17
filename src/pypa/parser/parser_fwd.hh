@@ -36,7 +36,7 @@ namespace pypa {
     bool continue_stmt(State & s, AstStmt & ast);
     bool decorated(State & s, AstStmt & ast);
     bool decorator(State & s, AstExpr & ast);
-    bool decorators(State & s, AstExpr & ast);
+    bool decorators(State & s, AstExprList & decorators);
     bool del_stmt(State & s, AstStmt & ast);
     bool dictorsetmaker(State & s, AstExpr & ast);
     bool dotted_as_name(State & s, AstExpr & ast);

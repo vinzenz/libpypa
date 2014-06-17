@@ -108,11 +108,12 @@ PYPA_AST_EXPR(Call) {
 PYPA_AST_MEMBERS2(Call, function, arglist);
 
 PYPA_AST_STMT(ClassDef) {
-    AstExpr name;
-    AstExpr bases;
-    AstStmt body;
+    AstExprList decorators;
+    AstExpr     name;
+    AstExpr     bases;
+    AstStmt     body;
 };
-PYPA_AST_MEMBERS3(ClassDef, name, bases, body);
+PYPA_AST_MEMBERS4(ClassDef, bases, body, decorators, name);
 
 PYPA_AST_STMT(Continue) {};
 PYPA_AST_MEMBERS0(Continue);
@@ -137,18 +138,7 @@ PYPA_AST_EXPR(Decorator) {
     AstExpr      name;
     AstArguments arguments;
 };
-PYPA_AST_MEMBERS2(Decorator, name, arguments);
-
-PYPA_AST_EXPR(Decorators) {
-    AstExprList decorators;
-};
-PYPA_AST_MEMBERS1(Decorators, decorators);
-
-PYPA_AST_STMT(Decorated) {
-    AstExpr decorators;
-    AstStmt cls_or_fun_def;
-};
-PYPA_AST_MEMBERS2(Decorated, decorators, cls_or_fun_def);
+PYPA_AST_MEMBERS2(Decorator, arguments, name);
 
 PYPA_AST_STMT(Delete) {
     AstExpr targets;
@@ -228,11 +218,12 @@ PYPA_AST_EXPR(ForExpr) {
 PYPA_AST_MEMBERS3(ForExpr, items, generators, iter);
 
 PYPA_AST_STMT(FunctionDef) {
+   AstExprList  decorators;
    AstExpr      name;
    AstArguments args;
    AstStmt      body;
 };
-PYPA_AST_MEMBERS3(FunctionDef, name, args, body);
+PYPA_AST_MEMBERS4(FunctionDef, args, body, decorators, name);
 
 PYPA_AST_EXPR(Generator) {
     AstExpr     element;

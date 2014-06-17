@@ -189,7 +189,7 @@ namespace pypa {
             table->enter_block(BlockType::Function, name, f);
             // TODO: Special arguments handling
             arguments(f.args);
-            walk_tree(f.body, *this);
+            walk_tree(*f.body, *this);
 
             table->leave_block();
 
@@ -214,6 +214,7 @@ namespace pypa {
                 }
                 add_def(n.id, SymbolFlag_Global, n);
             }
+            return false;
         }
 
         bool operator() (AstClassDef & c) {
@@ -227,7 +228,7 @@ namespace pypa {
             current_class.swap(table->current_class);
             table->current_class = name;
 
-            walk_tree(c.body, *this);
+            walk_tree(*c.body, *this);
 
             table->leave_block();
             current_class.swap(table->current_class);
@@ -263,10 +264,37 @@ namespace pypa {
             if(table->current->returns_value) {
                 PYPA_ADD_SYMBOL_ERR("Return value in generator", y);
             }
+            return true;
+        }
+
+        bool operator() (AstImportFrom & i) {
+            if(i.names) visit(*this, *i.names);
+            return true;
+        }
+
+        bool operator() (AstImport & i) {
+            if(i.names) visit(*this, *i.names);
+            return false;
         }
 
         bool operator() (AstAlias & a) {
-
+            AstName & n = *std::static_pointer_cast<AstName>(a.as_name ? a.as_name : a.name);
+            String name = n.id;
+            if(n.dotted) {
+                size_t pos = name.find_first_of('.');
+                assert(String::npos != pos);
+                name.erase(pos);
+            }
+            if(name == "*") {
+                if(table->current->type != BlockType::Module) {
+                    PYPA_ADD_SYMBOL_WARN("Import * only allowed at module level", n);
+                }
+                table->current->unoptimized |= OptimizeFlag_ImportStar;
+            }
+            else {
+                add_def(name, SymbolFlag_Import, a);
+            }
+            return false;
         }
 
         bool operator() (AstName & n) {

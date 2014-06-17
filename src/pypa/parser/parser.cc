@@ -39,7 +39,7 @@ void report_error(State & s) {
     for(int i = 0; i < e.cur.column - 1; ++i) {
         fputc(' ', stderr);
     }
-    fprintf(stderr, "^\n%s: %s", e.type == ErrorType::SyntaxError ? "SyntaxError" : "IndentationError", e.message.c_str());
+    fprintf(stderr, "^\n%s: %s", e.type == ErrorType::SyntaxError ? "SyntaxError" : e.type == ErrorType::SyntaxWarning ? "SyntaxWarning" : "IndentationError", e.message.c_str());
     if(e.detected_line != -1) {
         printf("\n-> Reported @%s:%d in %s\n\n", e.detected_file, e.detected_line, e.detected_function);
     }
@@ -204,15 +204,7 @@ bool dotted_as_names(State & s, AstExpr & ast) {
     ast = lst;
     AstExpr dotted;
     while(dotted_as_name(s, dotted)) {
-        if(dotted->type == AstType::Alias) {
-            AstAliasPtr a = std::static_pointer_cast<AstAlias>(dotted);
-            if(!a->as_name) {
-                lst->items.push_back(a->name);
-            }
-            else {
-                lst->items.push_back(dotted);
-            }
-        }
+        lst->items.push_back(dotted);
         if(!expect(s, TokenKind::Comma)) {
             break;
         }
@@ -228,15 +220,12 @@ bool dotted_as_names(State & s, AstExpr & ast) {
 
 bool import_as_name(State & s, AstExpr & ast) {
     StateGuard guard(s, ast);
-    AstExpr ptr;
-    if(get_name(s, ptr))
+    AstAliasPtr alias;
+    location(s, create(alias));
+    ast = alias;
+    if(get_name(s, alias->name))
     {
-        ast = ptr;
         if(expect(s, Token::KeywordAs)) {
-            AstAliasPtr alias;
-            clone_location(ptr, create(alias));
-            alias->name = ptr;
-            ast = alias;
             if(!get_name(s, alias->as_name)) {
                 syntax_error(s, ast, "Expected identifier after `as`");
                 return false;
@@ -1188,17 +1177,38 @@ bool with_item(State & s, AstWithItemPtr & ast) {
     return guard.commit();
 }
 
-bool decorators(State & s, AstExpr & ast) {
+bool decorated(State & s, AstStmt & ast) {
     StateGuard guard(s, ast);
-    AstDecoratorsPtr exprs;
-    location(s, create(exprs));
-    ast = exprs;
+    AstExprList dec;
+    // decorators (classdef || funcdef)
+    if(!decorators(s, dec)) {
+        return false;
+    }
+    AstStmt cls_or_fun;
+    if(funcdef(s, cls_or_fun)) {
+        assert(cls_or_fun && cls_or_fun->type == AstType::FunctionDef);
+        AstFunctionDef & fun = *std::static_pointer_cast<AstFunctionDef>(cls_or_fun);
+        fun.decorators.swap(dec);
+    }
+    else if(classdef(s, cls_or_fun)) {
+        assert(cls_or_fun && cls_or_fun->type == AstType::ClassDef);
+        AstClassDef & cls = *std::static_pointer_cast<AstClassDef>(cls_or_fun);
+        cls.decorators.swap(dec);
+    }
+    else {
+        return false;
+    }
+    ast = cls_or_fun;
+    return guard.commit();
+}
+
+bool decorators(State & s, AstExprList & decorators) {
     // decorator+
     AstExpr temp;
     while(decorator(s, temp)) {
-        exprs->decorators.push_back(temp);
+        decorators.push_back(temp);
     }
-    return !exprs->decorators.empty() && guard.commit();
+    return !decorators.empty();
 }
 
 bool compound_stmt(State & s, AstStmt & ast) {
@@ -1594,22 +1604,6 @@ bool funcdef(State & s, AstStmt & ast) {
         return false;
     }
     if(!suite(s, ptr->body)) {
-        return false;
-    }
-    return guard.commit();
-}
-
-bool decorated(State & s, AstStmt & ast) {
-    StateGuard guard(s, ast);
-    AstDecoratedPtr ptr;
-    location(s, create(ptr));
-    ast = ptr;
-    // decorators (classdef || funcdef)
-    if(!decorators(s, ptr->decorators)) {
-        return false;
-    }
-    if(!classdef(s, ptr->cls_or_fun_def) && !funcdef(s, ptr->cls_or_fun_def)) {
-        syntax_error(s, ast, "Expected `class` or `def` after decorator usage");
         return false;
     }
     return guard.commit();
@@ -2205,7 +2199,7 @@ bool import_from(State & s, AstStmt & ast) {
         if(is(s, TokenKind::Dot)) {
             while(expect(s, TokenKind::Dot)) ++impfrom->level;
         }
-        if(impfrom->level == 0 && !dotted_name(s, impfrom->module)) {
+        if(!dotted_name(s, impfrom->module) && impfrom->level == 0) {
             syntax_error(s, ast, "Expected name of module");
             return false;
         }
@@ -2219,15 +2213,19 @@ bool import_from(State & s, AstStmt & ast) {
             return false;
         }
         // expect(s, TokenKind::Star)
-        if(expect(s, TokenKind::Star)) {
+        if(is(s, TokenKind::Star)) {
             if(is_future_import) {
                 syntax_error(s, ast, "future feature * is not defined");
                 return false;
             }
             AstNamePtr ptr;
             location(s, create(ptr));
+            expect(s, TokenKind::Star);
             ptr->id = "*";
-            impfrom->names = ptr;
+            AstAliasPtr alias;
+            clone_location(ptr, create(alias));
+            alias->name = ptr;
+            impfrom->names = alias;
             // ok
         }
         // || expect(s, TokenKind::LeftParen) import_as_names expect(s, TokenKind::RightParen)
