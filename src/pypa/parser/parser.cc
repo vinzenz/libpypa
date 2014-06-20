@@ -19,6 +19,8 @@
 
 namespace pypa {
 
+String make_string(String const & s);
+
 template<typename T>
 AstPtr error_transform(std::shared_ptr<T> const & t) {
     return t;
@@ -546,30 +548,47 @@ bool break_stmt(State & s, AstStmt & ast) {
     return guard.commit();
 }
 
-bool with_stmt(State & s, AstStmt & ast) {
+bool with_stmt(State & s, AstStmt & ast, bool is_inner) {
     StateGuard guard(s, ast);
     AstWithPtr with;
     location(s, create(with));
     ast = with;
     // expect(s, Token::KeywordWith) with_item (expect(s, TokenKind::Comma) with_item)*  expect(s, TokenKind::Colon) suite
-    if(!expect(s, Token::KeywordWith)) {
+    if(!is_inner && !expect(s, Token::KeywordWith)) {
         return false;
     }
-    AstWithItemPtr item;
-    while(with_item(s, item)) {
-        with->items.push_back(item);
-        if(!expect(s, TokenKind::Comma)) {
-            break;
+
+    // test [expect(s, Token::KeywordAs) expr]
+    if(!test(s, with->context)) {
+        return false;
+    }
+    if(expect(s, Token::KeywordAs)) {
+        if(!expr(s, with->optional)) {
+            syntax_error(s, ast, "Expected expression after `as`");
+            return false;
+        }
+        visit(context_assign{AstContext::Store}, with->optional);
+    }
+
+    if(!is_inner && expect(s, TokenKind::Comma)) {
+        if(!with_stmt(s, with->body, true)) {
+            return false;
         }
     }
-    if(!expect(s, TokenKind::Colon)) {
-        syntax_error(s, ast, "Expected `:`");
-        return false;
-    }
-    if(!suite(s, with->body)) {
-        return false;
+    else {
+        if(!expect(s, TokenKind::Colon)) {
+            syntax_error(s, ast, "Expected `:`");
+            return false;
+        }
+        if(!suite(s, with->body)) {
+            return false;
+        }
     }
     return guard.commit();
+}
+
+bool with_stmt(State & s, AstStmt & ast) {
+    return with_stmt(s, ast, false);
 }
 
 bool comp_op(State & s, AstCompareOpType & op) {
@@ -767,7 +786,7 @@ bool atom(State & s, AstExpr & ast) {
         while(is(s, Token::String)) {
             AstStrPtr str;
             location(s, create(str));
-            str->value = top(s).value;
+            str->value = make_string(top(s).value);
             ptr->items.push_back(str);
             expect(s, Token::String);
         }
@@ -1156,23 +1175,6 @@ bool subscript(State & s, AstSliceKindPtr & ast) {
             }
             ast = index;
         }
-    }
-    return guard.commit();
-}
-
-bool with_item(State & s, AstWithItemPtr & ast) {
-    StateGuard guard(s, ast);
-    location(s, create(ast));
-    // test [expect(s, Token::KeywordAs) expr]
-    if(!test(s, ast->context)) {
-        return false;
-    }
-    if(expect(s, Token::KeywordAs)) {
-        if(!expr(s, ast->optional)) {
-            syntax_error(s, ast, "Expected expression after `as`");
-            return false;
-        }
-        visit(context_assign{AstContext::Store}, ast->optional);
     }
     return guard.commit();
 }

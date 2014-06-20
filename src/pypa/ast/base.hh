@@ -30,7 +30,6 @@ PYPA_AST_TYPE_DECL_ALIAS(Ast, AstPtr, AstPtrList) {
 template<AstType Type, typename Base = Ast>
 struct AstT : Base {
     static constexpr AstType TYPE = Type;
-    using Ast::Ast;
     AstT(AstType type = Type) : Base{type} {}
 };
 template<>
@@ -46,7 +45,11 @@ DEF_AST_TYPE_BY_ID1(Expression);
 PYPA_AST_MEMBERS0(Expression);
 
 template<AstType Type>
-struct AstExprT : AstT<Type, AstExpression> {};
+struct AstExprT : AstT<Type, AstExpression> {
+    AstExprT()
+    : AstT<Type, AstExpression>(Type)
+    {}
+};
 
 PYPA_AST_TYPE_DECL_DERIVED_ALIAS(Statement, AstStmt, AstStmtList) {
       using AstT<AstType::Statement>::AstT;
@@ -55,7 +58,9 @@ DEF_AST_TYPE_BY_ID1(Statement);
 PYPA_AST_MEMBERS0(Statement);
 
 template<AstType Type>
-struct AstStmtT : AstT<Type, AstStatement> { using AstT<AstType::Statement>::AstT;};
+struct AstStmtT : AstT<Type, AstStatement> {
+    AstStmtT() : AstT<Type, AstStatement>(Type){}
+};
 
 PYPA_AST_TYPE_DECL_DERIVED(SliceKind){
     using AstT<AstType::SliceKind>::AstT;
@@ -65,7 +70,11 @@ PYPA_AST_MEMBERS0(SliceKind);
 
 template<AstType Type>
 struct AstSliceT : AstT<Type, AstSliceKind> {
-    using AstT<AstType::SliceKind>::AstT;
+
+    AstSliceT()
+    : AstT<Type, AstSliceKind>(Type)
+    {}
+
     static_assert(
         Type == AstType::ExtSlice
      || Type == AstType::Index

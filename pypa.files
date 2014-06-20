@@ -30,3 +30,4 @@ src/pypa/parser/future_features.hh
 src/pypa/parser/symbol_table.cc
 src/pypa/parser/symbol_table_visitor.hh
 src/pypa/ast/dump.hh
+src/pypa/parser/make_string.cc

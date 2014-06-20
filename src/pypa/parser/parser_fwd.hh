@@ -94,7 +94,6 @@ namespace pypa {
     bool try_stmt(State & s, AstStmt & ast);
     bool varargslist(State & s, AstArguments & ast);
     bool while_stmt(State & s, AstStmt & ast);
-    bool with_item(State & s, AstWithItemPtr & ast);
     bool with_stmt(State & s, AstStmt & ast);
     bool xor_expr(State & s, AstExpr & ast);
     bool yield_expr(State & s, AstExpr & ast);

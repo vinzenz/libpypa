@@ -9,6 +9,7 @@ libpypa_la_SOURCES=\
 	pypa/filebuf.cc \
 	pypa/lexer/lexer.cc \
 	pypa/parser/parser.cc \
+	pypa/parser/make_string.cc \
 	pypa/parser/symbol_table.cc \
 	double-conversion/src/bignum-dtoa.cc \
 	double-conversion/src/bignum.cc \
@@ -43,6 +44,7 @@ pypa_HEADERS=\
 pypaparserdir=$(includedir)/pypa/parser
 pypaparser_HEADERS=\
 	pypa/parser/apply.hh \
+	pypa/parser/error.hh \
 	pypa/parser/future_features.hh \
 	pypa/parser/parser.hh \
 	pypa/parser/parser_fwd.hh \

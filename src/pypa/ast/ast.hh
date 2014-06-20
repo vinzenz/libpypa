@@ -397,18 +397,12 @@ PYPA_AST_STMT(While) {
 };
 PYPA_AST_MEMBERS3(While, test, body, orelse);
 
-PYPA_AST_TYPE_DECL_DERIVED(WithItem) {
-    AstExpr context;
-    AstExpr optional;
-};
-DEF_AST_TYPE_BY_ID1(WithItem);
-PYPA_AST_MEMBERS2(WithItem, context, optional);
-
 PYPA_AST_STMT(With) {
-    AstWithItemList items;
+    AstExpr         context;
+    AstExpr         optional;
     AstStmt         body;
 };
-PYPA_AST_MEMBERS2(With, items, body);
+PYPA_AST_MEMBERS3(With, context, optional, body);
 
 
 PYPA_AST_EXPR(YieldExpr) {
