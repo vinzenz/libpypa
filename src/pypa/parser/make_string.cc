@@ -29,17 +29,43 @@ inline bool islower(char c) {
 
 String make_string(String const & input) {
     String result;
-    size_t first_quote  = input.find_first_of('"');
+    size_t first_quote  = input.find_first_of("\"'");
     assert(first_quote != String::npos);
-    size_t string_start = input.find_first_not_of('"', first_quote);
+    char quote = input[first_quote];
+    size_t string_start = input.find_first_not_of(quote, first_quote);
     assert(string_start != String::npos);
     size_t string_end   = input.size() - 1;
-    while(string_end > 0 && input[string_end] == '"') --string_end;
-    assert(string_end != String::npos && string_start < string_end);
+    while(string_end > 0 && input[string_end] == quote) --string_end;
+    assert(string_end != String::npos && string_start <= string_end);
 
     char const * s = input.c_str() + string_start;
-    char const * end = s + string_end;
-    // bool unicode =
+    char const * end = s + string_end + 1;
+    char const * qst = input.c_str() + first_quote;
+    char const * tmp = input.c_str();
+
+    bool unicode = false;
+    bool raw = false;
+    bool bytes = false;
+
+    while(tmp != qst) {
+        switch(*tmp) {
+        case 'u': case 'U':
+            unicode = true;
+            break;
+        case 'r': case 'R':
+            raw = true;
+            break;
+        case 'b': case 'B':
+            bytes = true;
+            break;
+        default:
+            assert("Unknown character prefix" && false);
+            break;
+        }
+        ++tmp;
+    }
+
+
 
     std::back_insert_iterator<String> p((result));
 
@@ -52,22 +78,23 @@ String make_string(String const & input) {
             assert(s < end);
             switch(c) {
             case '\n': break;
-            case '\\': *p++ = '\\'; break;
-            case '\'': *p++ = '\''; break;
-            case '\"': *p++ = '\"'; break;
+            case '\\': case '\'': case '\"': *p++ = c; break;
+
             case 'b': *p++ = '\b'; break;
             case 'f': *p++ = '\014'; break; /* FF */
             case 't': *p++ = '\t'; break;
             case 'n': *p++ = '\n'; break;
             case 'r': *p++ = '\r'; break;
-            case 'v': *p++ = '\013'; break; /* VT */
-            case 'a': *p++ = '\007'; break; /* BEL, not classic C */
+            case 'v': *p++ = '\013'; break;
+            case 'a': *p++ = '\007'; break;
+            case '0': case '1': case '2': case '3':
             case '4': case '5': case '6': case '7':
                 c = s[-1] - '0';
                 if (s < end && '0' <= *s && *s <= '7') {
                     c = (c<<3) + *s++ - '0';
-                    if (s < end && '0' <= *s && *s <= '7')
+                    if (s < end && '0' <= *s && *s <= '7') {
                         c = (c<<3) + *s++ - '0';
+                    }
                 }
                 *p++ = c;
                 break;
