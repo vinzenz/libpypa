@@ -39,7 +39,7 @@ String make_string(String const & input) {
     assert(string_end != String::npos && string_start <= string_end);
 
     char const * s = input.c_str() + string_start;
-    char const * end = s + string_end + 1;
+    char const * end = s + string_end;
     char const * qst = input.c_str() + first_quote;
     char const * tmp = input.c_str();
 
@@ -73,13 +73,12 @@ String make_string(String const & input) {
         char c = *s;
         switch(*s) {
         case '\\':
-            ++s;
             c = *s;
+            ++s;
             assert(s < end);
             switch(c) {
             case '\n': break;
             case '\\': case '\'': case '\"': *p++ = c; break;
-
             case 'b': *p++ = '\b'; break;
             case 'f': *p++ = '\014'; break; /* FF */
             case 't': *p++ = '\t'; break;
