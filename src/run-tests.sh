@@ -11,6 +11,6 @@ mkdir -p results
 for file in `find ~/devel/apps/cpython/ -name "*.py"`;
 do
     echo "Parsing $file";
-    ./parser-test $file > ./results/`basename $file`.ast.out && rm -f ./results/`basename $file`.ast.out;
+    ./parser-test $file &> ./results/`basename $file`.ast.out && rm -f ./results/`basename $file`.ast.out;
 done
 

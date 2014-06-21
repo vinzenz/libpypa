@@ -43,7 +43,7 @@ void report_error(State & s) {
     }
     fprintf(stderr, "^\n%s: %s", e.type == ErrorType::SyntaxError ? "SyntaxError" : e.type == ErrorType::SyntaxWarning ? "SyntaxWarning" : "IndentationError", e.message.c_str());
     if(e.detected_line != -1) {
-        printf("\n-> Reported @%s:%d in %s\n\n", e.detected_file, e.detected_line, e.detected_function);
+        fprintf(stderr, "\n-> Reported @%s:%d in %s\n\n", e.detected_file, e.detected_line, e.detected_function);
     }
 }
 
@@ -201,21 +201,21 @@ bool generic_boolop_expr(State & s, AstExpr & ast, Token op, AstBoolOpType op_ty
 
 bool dotted_as_names(State & s, AstExpr & ast) {
     StateGuard guard(s, ast);
-    AstExpressionsPtr lst;
+    AstTuplePtr lst;
     location(s, create(lst));
     ast = lst;
     AstExpr dotted;
     while(dotted_as_name(s, dotted)) {
-        lst->items.push_back(dotted);
+        lst->elements.push_back(dotted);
         if(!expect(s, TokenKind::Comma)) {
             break;
         }
     }
-    if(lst->items.empty()) {
+    if(lst->elements.empty()) {
         return false;
     }
-    if(lst->items.size() == 1) {
-        ast = lst->items.front();
+    if(lst->elements.size() == 1) {
+        ast = lst->elements.front();
     }
     return  guard.commit();
 }
@@ -402,7 +402,7 @@ bool testlist1(State & s, AstExpr & ast) {
         return false;
     }
     if(is(s, TokenKind::Comma)) {
-        AstExpressionsPtr exprs;
+        AstTuplePtr exprs;
         clone_location(ast, create(exprs));
         ast = exprs;
         while(expect(s, TokenKind::Comma)) {
@@ -410,10 +410,10 @@ bool testlist1(State & s, AstExpr & ast) {
             if(!test(s, temp)) {
                 return false;
             }
-            exprs->items.push_back(temp);
+            exprs->elements.push_back(temp);
         }
-        if(exprs->items.size() == 1) {
-            ast = exprs->items.front();
+        if(exprs->elements.size() == 1) {
+            ast = exprs->elements.front();
         }
     }
     return guard.commit();
@@ -421,27 +421,27 @@ bool testlist1(State & s, AstExpr & ast) {
 
 bool testlist_safe(State & s, AstExpr & ast) {
     StateGuard guard(s, ast);
-    AstExpressionsPtr exprs;
+    AstTuplePtr exprs;
     location(s, create(exprs));
     ast = exprs;
     AstExpr temp;
     // old_test [(expect(s, TokenKind::Comma) old_test)+ [expect(s, TokenKind::Comma)]]
     while(old_test(s, temp)) {
-        exprs->items.push_back(temp);
+        exprs->elements.push_back(temp);
         if(!expect(s, TokenKind::Comma)) {
             break;
         }
     }
-    if(exprs->items.size() == 1) {
-        ast = exprs->items.front();
+    if(exprs->elements.size() == 1) {
+        ast = exprs->elements.front();
         return guard.commit();
     }
-    return !exprs->items.empty() && guard.commit();
+    return !exprs->elements.empty() && guard.commit();
 }
 
 bool testlist_comp(State & s, AstExpr & ast, bool * last_was_comma = 0) {
     StateGuard guard(s, ast);
-    AstExpressionsPtr exprs;
+    AstTuplePtr exprs;
     location(s, create(exprs));
     ast = exprs;
     AstExpr tmp;
@@ -459,7 +459,7 @@ bool testlist_comp(State & s, AstExpr & ast, bool * last_was_comma = 0) {
         }
     }
     else {
-        exprs->items.push_back(tmp);
+        exprs->elements.push_back(tmp);
         for(;;) {
             if(!expect(s, TokenKind::Comma)) {
                 break;
@@ -468,11 +468,11 @@ bool testlist_comp(State & s, AstExpr & ast, bool * last_was_comma = 0) {
                 if(last_was_comma) *last_was_comma = true;
                 break;
             }
-            exprs->items.push_back(tmp);
+            exprs->elements.push_back(tmp);
         }
-        if(exprs->items.size() == 1) {
-            ast = exprs->items.front();
-        }
+    }
+    if(exprs->elements.size() == 1) {
+        ast = exprs->elements.front();
     }
     return guard.commit();
 }
@@ -570,7 +570,7 @@ bool with_stmt(State & s, AstStmt & ast, bool is_inner) {
         visit(context_assign{AstContext::Store}, with->optional);
     }
 
-    if(!is_inner && expect(s, TokenKind::Comma)) {
+    if(expect(s, TokenKind::Comma)) {
         if(!with_stmt(s, with->body, true)) {
             return false;
         }
@@ -665,21 +665,14 @@ bool atom(State & s, AstExpr & ast) {
         bool last_was_comma = false;
         if(testlist_comp(s, ast, &last_was_comma)) {
             if(ast->type != AstType::Generator) {
-                AstTuplePtr ptr;
-                location(s, create(ptr));
-                if(ast->type == AstType::Expressions) {
-                    AstExpressions & e = *static_cast<AstExpressions*>(ast.get());
-                    if(!last_was_comma && e.items.size() == 1) {
-                        ast = e.items.front();
-                    }
-                    else {
-                        for(auto item : e.items) {
-                            ptr->elements.push_back(item);
-                        }
-                        ast = ptr;
+                if(ast->type == AstType::Tuple) {
+                    if(!last_was_comma && static_cast<AstTuple&>(*ast).elements.size() == 1) {
+                        ast = static_cast<AstTuple&>(*ast).elements.front();
                     }
                 }
-                else {
+                else if(last_was_comma) {
+                    AstTuplePtr ptr;
+                    clone_location(ast, create(ptr));
                     ptr->elements.push_back(ast);
                     ast = ptr;
                 }
@@ -780,18 +773,18 @@ bool atom(State & s, AstExpr & ast) {
     }
     // || STRING+
     else if(is(s, Token::String)) {
-        AstExpressionsPtr ptr;
+        AstTuplePtr ptr;
         location(s, create(ptr));
         ast = ptr;
         while(is(s, Token::String)) {
             AstStrPtr str;
             location(s, create(str));
             str->value = make_string(top(s).value);
-            ptr->items.push_back(str);
+            ptr->elements.push_back(str);
             expect(s, Token::String);
         }
-        if(ptr->items.size() == 1) {
-            ast = ptr->items.front();
+        if(ptr->elements.size() == 1) {
+            ast = ptr->elements.front();
         }
     }
     /*
@@ -880,7 +873,16 @@ bool arglist(State & s, AstArguments & ast) {
     // (argument expect(s, TokenKind::Comma))* (argument [expect(s, TokenKind::Comma)]||expect(s, TokenKind::Star) test (expect(s, TokenKind::Comma) argument)* [expect(s, TokenKind::Comma) expect(s, TokenKind::DoubleStar) test]||expect(s, TokenKind::DoubleStar) test)
     AstExpr item;
     while(!(is(s, TokenKind::Star) || is(s, TokenKind::DoubleStar)) && argument(s, item)) {
-        ast.arguments.push_back(item);
+        if(item->type != AstType::Keyword) {
+            if(!ast.keywords.empty()) {
+                syntax_error(s, ast, "Expected keyword argument");
+                return false;
+            }
+            ast.arguments.push_back(item);
+        }
+        else {
+            ast.keywords.push_back(item);
+        }
         if(!expect(s, TokenKind::Comma)) {
             break;
         }
@@ -949,27 +951,29 @@ bool shift_expr(State & s, AstExpr & ast) {
 
 bool exprlist(State & s, AstExpr & ast) {
     StateGuard guard(s, ast);
-    AstExpressionsPtr exprs;
+    AstTuplePtr exprs;
     location(s, create(exprs));
+    exprs->context = AstContext::Store;
     ast = exprs;
     // expr (expect(s, TokenKind::Comma) expr)* [expect(s, TokenKind::Comma)]
     AstExpr tmp;
     while(expr(s, tmp)) {
-        exprs->items.push_back(tmp);
+        exprs->elements.push_back(tmp);
         if(!expect(s, TokenKind::Comma)) {
             break;
         }
     }
-    if(exprs->items.size() == 1) {
-        ast = exprs->items.front();
+    if(exprs->elements.size() == 1) {
+        ast = exprs->elements.front();
     }
-    return !exprs->items.empty() && guard.commit();
+    return !exprs->elements.empty() && guard.commit();
 }
 
 bool simple_stmt(State & s, AstStmt & ast) {
     StateGuard guard(s, ast);
     AstSuitePtr suite_;
     location(s, create(suite_));
+    ast = suite_;
     // small_stmt (expect(s, TokenKind::SemiColon) small_stmt)* [expect(s, TokenKind::SemiColon)] expect(s, Token::NewLine)
     AstStmt tmp;
     if(!small_stmt(s, tmp)) {
@@ -984,7 +988,7 @@ bool simple_stmt(State & s, AstStmt & ast) {
         }
     }
     if(suite_->items.size() == 1) {
-        ast = tmp;
+        ast = suite_->items.front();
     }
     if(!expect(s, TokenKind::NewLine)/* && !is(s, Token::End)*/) {
         syntax_error(s, ast, "Expected new line after statement");
@@ -1144,7 +1148,7 @@ bool global_stmt(State & s, AstStmt & ast) {
     return false;
 }
 
-bool subscript(State & s, AstSliceKindPtr & ast) {
+bool subscript(State & s, AstExpr & ast) {
     StateGuard guard(s, ast);
     // expect(s, TokenKind::Dot) expect(s, TokenKind::Dot) expect(s, TokenKind::Dot) || test || [test] expect(s, TokenKind::Colon) [test] [sliceop]
     if(is(s, TokenKind::Dot)) {
@@ -1342,7 +1346,7 @@ bool subscriptlist(State & s, AstExtSlice & ast) {
     StateGuard guard(s);
     location(s, ast);
     // subscript (expect(s, TokenKind::Comma) subscript)* [expect(s, TokenKind::Comma)]
-    AstSliceKindPtr item;
+    AstExpr item;
     if(!subscript(s, item)) {
         return false;
     }
@@ -1358,7 +1362,7 @@ bool subscriptlist(State & s, AstExtSlice & ast) {
 
 bool testlist(State & s, AstExpr & ast) {
     StateGuard guard(s, ast);
-    AstExpressionsPtr ptr;
+    AstTuplePtr ptr;
     location(s, create(ptr));
     ast = ptr;
     // test (expect(s, TokenKind::Comma) test)* [expect(s, TokenKind::Comma)]
@@ -1366,15 +1370,15 @@ bool testlist(State & s, AstExpr & ast) {
     if(!test(s, temp)) {
         return false;
     }
-    ptr->items.push_back(temp);
+    ptr->elements.push_back(temp);
     while(expect(s, TokenKind::Comma)) {
         if(!test(s, temp)) {
             break;
         }
-        ptr->items.push_back(temp);
+        ptr->elements.push_back(temp);
     }
-    if(ptr->items.size() == 1) {
-        ast = ptr->items.front();
+    if(ptr->elements.size() == 1) {
+        ast = ptr->elements.front();
         ptr.reset();
     }
     return guard.commit();
@@ -1536,7 +1540,7 @@ bool lambdef(State & s, AstExpr & ast) {
 }
 
 void make_docstring(State & s, AstSuitePtr & suite_) {
-    if(s.options.docstrings && suite_->items.front()) {
+    if(s.options.docstrings && !suite_->items.empty() && suite_->items.front()) {
         if(suite_->items.front()->type == AstType::ExpressionStatement) {
             AstExpressionStatementPtr exprstmt = std::static_pointer_cast<AstExpressionStatement>(suite_->items.front());
             if(exprstmt->expr && exprstmt->expr->type == AstType::Str) {
@@ -1647,16 +1651,21 @@ bool expr_stmt(State & s, AstStmt & ast) {
             if(is(s, TokenKind::Equal)) {
                 AstAssignPtr ptr;
                 location(s, create(ptr));
-                ptr->targets = target;
+                ptr->targets.push_back(target);
+                visit(context_assign{AstContext::Store}, target);
                 ast = ptr;
                 while(expect(s, TokenKind::Equal)) {
+                    if(ptr->value) {
+                        visit(context_assign{AstContext::Store}, ptr->value);
+                        ptr->targets.push_back(ptr->value);
+                        ptr->value.reset();
+                    }
                     AstExpr value;
                     if(!yield_expr(s, value) && !testlist(s, value)) {
                         syntax_error(s, ast, "Expected expression after assignment operator");
                         return false;
                     }
-                    visit(context_assign{AstContext::Store}, target);
-                    ptr->value.items.push_back(value);
+                    ptr->value = value;
                 }
             }
         }
@@ -1732,6 +1741,44 @@ bool decorator(State & s, AstExpr & ast) {
     return guard.commit();
 }
 
+bool else_stmt(State & s, AstStmt & ast) {
+    StateGuard guard(s, ast);
+    // (expect(s, Token::KeywordElIf) test expect(s, TokenKind::Colon) suite)*
+    if(expect(s, Token::KeywordElIf)) {
+        AstIfPtr if_;
+        location(s, create(if_));
+        ast = if_;
+
+        if(!test(s, if_->test)) {
+            syntax_error(s, ast, "Expected expression after `elif`");
+            return false;
+        }
+        if(!expect(s, TokenKind::Colon)) {
+            syntax_error(s, ast, "Expected `:`");
+            return false;
+        }
+        if(!suite(s, if_->body)) {
+            syntax_error(s, ast, "Expected statement block after `elif <expression>:`");
+            return false;
+        }
+        if(!else_stmt(s, if_->orelse)) {
+            // If this fails it should have been reported already
+            return false;
+        }
+    }
+    // [expect(s, Token::KeywordElse) expect(s, TokenKind::Colon) suite]
+    else if(expect(s, Token::KeywordElse)) {
+        if(!expect(s, TokenKind::Colon)) {
+            syntax_error(s, ast, "Expected `:` after `else`");
+            return false;
+        }
+        if(!suite(s, ast)) {
+            return false;
+        }
+    }
+    return guard.commit();
+}
+
 bool if_stmt(State & s, AstStmt & ast) {
     StateGuard guard(s, ast);
     AstIfPtr if_;
@@ -1752,39 +1799,7 @@ bool if_stmt(State & s, AstStmt & ast) {
     if(!suite(s, if_->body)) {
         return false;
     }
-    // (expect(s, Token::KeywordElIf) test expect(s, TokenKind::Colon) suite)*
-    if(is(s, Token::KeywordElIf)) {
-        AstExpressionsPtr lst;
-        location(s, create(lst));
-        while(expect(s, Token::KeywordElIf)) {
-            AstElseIfPtr elif;
-            location(s, create(elif));
-            if(!test(s, elif->test)) {
-                syntax_error(s, ast, "Expected expression after `elif`");
-                return false;
-            }
-            if(!expect(s, TokenKind::Colon)) {
-                syntax_error(s, ast, "Expected `:`");
-                return false;
-            }
-            if(!suite(s, elif->body)) {
-                return false;
-            }
-            lst->items.push_back(elif);
-        }
-        if_->elif = lst;
-    }
-    // [expect(s, Token::KeywordElse) expect(s, TokenKind::Colon) suite]
-    if(expect(s, Token::KeywordElse)) {
-        if(!expect(s, TokenKind::Colon)) {
-            syntax_error(s, ast, "Expected `:` after `else`");
-            return false;
-        }
-        if(!suite(s, if_->orelse)) {
-            return false;
-        }
-    }
-    return guard.commit();
+    return else_stmt(s, if_->orelse) && guard.commit();
 }
 
 bool sliceop(State & s, AstExpr & ast) {
@@ -2026,6 +2041,9 @@ bool fplist(State & s, AstExpr & ast) {
             }
             tuple->elements.push_back(temp);
         }
+        if(tuple->elements.size() == 1) {
+            ast = tuple->elements.front();
+        }
         return guard.commit();
     }
     return false;
@@ -2094,6 +2112,14 @@ bool varargslist(State & s, AstArguments & ast) {
             return false;
         }
     }
+    visit(context_assign{AstContext::Param}, ast.args);
+    for(auto & a : ast.arguments) {
+        visit(context_assign{AstContext::Param}, a);
+    }
+    for(auto & k : ast.keywords) {
+        visit(context_assign{AstContext::Param}, k);
+    }
+    visit(context_assign{AstContext::Param}, ast.kwargs);
     return guard.commit();
 }
 
@@ -2255,8 +2281,8 @@ bool import_from(State & s, AstStmt & ast) {
             };
 
             bool failure = false;
-            if(impfrom->names->type == AstType::Expressions) {
-                for(auto e : std::static_pointer_cast<AstExpressions>(impfrom->names)->items) {
+            if(impfrom->names->type == AstType::Tuple) {
+                for(auto e : std::static_pointer_cast<AstTuple>(impfrom->names)->elements) {
                     if(!future_check(e)) {
                         failure = true;
                     }
@@ -2277,22 +2303,25 @@ bool import_from(State & s, AstStmt & ast) {
 
 bool import_as_names(State & s, AstExpr & ast) {
     StateGuard guard(s, ast);
-    AstExpressionsPtr exprs;
+    AstTuplePtr exprs;
     location(s, create(exprs));
     ast = exprs;
     // import_as_name (expect(s, TokenKind::Comma) import_as_name)* [expect(s, TokenKind::Comma)]
     AstExpr alias;
     while(import_as_name(s, alias)) {
-        exprs->items.push_back(alias);
+        exprs->elements.push_back(alias);
         if(!expect(s, TokenKind::Comma)) {
             break;
         }
     }
-    if(!is(s, TokenKind::NewLine) && !is(s, TokenKind::SemiColon)) {
+    if(!is(s, TokenKind::NewLine) && !is(s, TokenKind::SemiColon) && !is(s, TokenKind::RightParen)) {
         syntax_error(s, ast, "Unexpected token");
         return false;
     }
-    return !exprs->items.empty() && guard.commit();
+    if(exprs->elements.size() == 1) {
+        ast = exprs->elements.front();
+    }
+    return !exprs->elements.empty() && guard.commit();
 }
 
 bool import_name(State & s, AstStmt & ast) {
@@ -2437,14 +2466,11 @@ bool comp_for(State & s, AstExprList & ast) {
 
 bool comp_if(State & s, AstExpr & ast) {
     StateGuard guard(s, ast);
-    AstComprPtr ptr;
-    location(s, create(ptr));
-    ast = ptr;
     // expect(s, Token::KeywordIf) old_test [comp_iter]
     if(!expect(s, Token::KeywordIf)) {
         return false;
     }
-    if(!old_test(s, ptr->target)) {
+    if(!old_test(s, ast)) {
         syntax_error(s, ast, "Expected condition after `if`");
         return false;
     }

@@ -19,10 +19,12 @@
 
 namespace pypa {
 
-PYPA_AST_EXPR(Expressions) {
-    AstExprList items;
+
+PYPA_AST_EXPR(Tuple) {
+    AstExprList elements;
+    AstContext  context;
 };
-PYPA_AST_MEMBERS1(Expressions, items);
+PYPA_AST_MEMBERS2(Tuple, context, elements);
 
 PYPA_AST_EXPR(Name) {
     AstContext  context;
@@ -42,17 +44,17 @@ PYPA_AST_EXPR(Alias) {
     AstExpr name;
     AstExpr as_name;
 };
-PYPA_AST_MEMBERS2(Alias, name, as_name);
+PYPA_AST_MEMBERS2(Alias, as_name, name);
 
 PYPA_AST_STMT(Assert) {
     AstExpr expression;
     AstExpr test;
 };
-PYPA_AST_MEMBERS2(Assert, test, expression);
+PYPA_AST_MEMBERS2(Assert, expression, test);
 
 PYPA_AST_STMT(Assign) {
-    AstExpr targets;
-    AstExpressions value; // since this can be chained tgt = value = value...
+    AstExprList targets; // since this can be chained tgt = value = value...
+    AstExpr     value;
 };
 PYPA_AST_MEMBERS2(Assign, targets, value);
 
@@ -64,21 +66,21 @@ PYPA_AST_TYPE_DECL_DERIVED(Arguments) {
     AstExprList keywords;
 };
 DEF_AST_TYPE_BY_ID1(Arguments);
-PYPA_AST_MEMBERS5(Arguments, arguments, defaults, kwargs, args, keywords);
+PYPA_AST_MEMBERS5(Arguments, args, arguments, defaults, kwargs, keywords);
 
 PYPA_AST_STMT(AugAssign) {
     AstExpr         value;
     AstExpr         target;
     AstBinOpType    op;
 };
-PYPA_AST_MEMBERS3(AugAssign, value, target, op);
+PYPA_AST_MEMBERS3(AugAssign, op, target, value);
 
 PYPA_AST_EXPR(Attribute) {
     AstExpr     value;
     AstContext  context;
     AstExpr     attribute;
 };
-PYPA_AST_MEMBERS3(Attribute, value, context, attribute);
+PYPA_AST_MEMBERS3(Attribute, attribute, context, value);
 
 PYPA_AST_EXPR(BinOp) {
     AstExpr         left;
@@ -105,7 +107,7 @@ PYPA_AST_EXPR(Call) {
     AstExpr      function;
     AstArguments arglist;
 };
-PYPA_AST_MEMBERS2(Call, function, arglist);
+PYPA_AST_MEMBERS2(Call, arglist, function);
 
 PYPA_AST_STMT(ClassDef) {
     AstExprList decorators;
@@ -132,7 +134,7 @@ PYPA_AST_EXPR(Comprehension) {
 };
 typedef AstComprehensionPtr      AstComprPtr;
 typedef std::vector<AstComprPtr> AstComprList;
-PYPA_AST_MEMBERS3(Comprehension, target, iter, ifs);
+PYPA_AST_MEMBERS3(Comprehension, ifs, iter, target);
 
 PYPA_AST_STMT(Delete) {
     AstExpr targets;
@@ -150,7 +152,7 @@ PYPA_AST_EXPR(DictComp) {
     AstExpr     value;
     AstExprList generators;
 };
-PYPA_AST_MEMBERS3(DictComp, key, value, generators);
+PYPA_AST_MEMBERS3(DictComp, generators, key, value);
 
 PYPA_AST_STMT(DocString) {
     String doc;
@@ -160,15 +162,8 @@ PYPA_AST_MEMBERS1(DocString, doc);
 PYPA_AST_EXPR(EllipsisObject) {};
 PYPA_AST_MEMBERS0(EllipsisObject);
 
-PYPA_AST_TYPE_DECL_SLICE_KIND(Ellipsis) {};
-DEF_AST_TYPE_BY_ID1(Ellipsis);
+PYPA_AST_EXPR(Ellipsis) {};
 PYPA_AST_MEMBERS0(Ellipsis);
-
-PYPA_AST_EXPR(ElseIf) {
-    AstExpr test;
-    AstStmt body;
-};
-PYPA_AST_MEMBERS2(ElseIf, body, test);
 
 PYPA_AST_STMT(Exec) {
     AstExpr body;
@@ -183,17 +178,16 @@ PYPA_AST_EXPR(Except) {
     AstStmt body;
 };
 typedef std::vector<AstExceptPtr> AstExceptList;
-PYPA_AST_MEMBERS3(Except, type, name, body);
+PYPA_AST_MEMBERS3(Except, body, name, type);
 
 PYPA_AST_STMT(ExpressionStatement) {
     AstExpr expr;
 };
 PYPA_AST_MEMBERS1(ExpressionStatement, expr);
 
-PYPA_AST_TYPE_DECL_SLICE_KIND(ExtSlice) {
-    AstSliceKindList dims;
+PYPA_AST_EXPR(ExtSlice) {
+    AstExprList dims;
 };
-DEF_AST_TYPE_BY_ID1(ExtSlice);
 PYPA_AST_MEMBERS1(ExtSlice, dims);
 
 PYPA_AST_STMT(For) {
@@ -202,7 +196,7 @@ PYPA_AST_STMT(For) {
     AstExpr target;
     AstExpr iter;
 };
-PYPA_AST_MEMBERS4(For, body, orelse, target, iter);
+PYPA_AST_MEMBERS4(For, body, iter, orelse, target);
 
 PYPA_AST_STMT(FunctionDef) {
    AstExprList  decorators;
@@ -226,10 +220,9 @@ PYPA_AST_MEMBERS1(Global, names);
 PYPA_AST_STMT(If) {
     AstExpr     test;
     AstStmt     body;
-    AstExpr     elif;
     AstStmt     orelse;
 };
-PYPA_AST_MEMBERS4(If, test, body, elif, orelse);
+PYPA_AST_MEMBERS3(If, body, orelse, test);
 
 PYPA_AST_EXPR(IfExpr) {
     AstExpr body;
@@ -238,10 +231,9 @@ PYPA_AST_EXPR(IfExpr) {
 };
 PYPA_AST_MEMBERS3(IfExpr, body, orelse, test);
 
-PYPA_AST_TYPE_DECL_SLICE_KIND(Index) {
+PYPA_AST_EXPR(Index) {
     AstExpr value;
 };
-DEF_AST_TYPE_BY_ID1(Index);
 PYPA_AST_MEMBERS1(Index, value);
 
 PYPA_AST_STMT(Import) {
@@ -254,7 +246,7 @@ PYPA_AST_STMT(ImportFrom) {
     AstExpr         names;
     int             level;
 };
-PYPA_AST_MEMBERS3(ImportFrom, module, names, level);
+PYPA_AST_MEMBERS3(ImportFrom, level, module, names);
 
 PYPA_AST_EXPR(Lambda) {
     AstArguments    arguments;
@@ -266,7 +258,7 @@ PYPA_AST_EXPR(List) {
     AstExprList elements;
     AstContext  context;
 };
-PYPA_AST_MEMBERS2(List, elements, context);
+PYPA_AST_MEMBERS2(List, context, elements);
 
 PYPA_AST_EXPR(ListComp) {
     AstExpr     element;
@@ -289,14 +281,14 @@ PYPA_AST_EXPR(Number) {
         char    data[sizeof(floating) > sizeof(integer) ? sizeof(floating) : sizeof(integer)];
     };
 };
-PYPA_AST_MEMBERS4(Number, num_type, data, floating, integer);
+PYPA_AST_MEMBERS4(Number, data, floating, integer, num_type);
 
 
 PYPA_AST_EXPR(Complex) {
     AstNumberPtr real;
     String imag;
 };
-PYPA_AST_MEMBERS2(Complex, real, imag);
+PYPA_AST_MEMBERS2(Complex, imag, real);
 
 PYPA_AST_TYPE_DECL_DERIVED(Module) {
     AstSuitePtr     body;
@@ -345,13 +337,12 @@ PYPA_AST_EXPR(SetComp) {
 };
 PYPA_AST_MEMBERS2(SetComp, element, generators);
 
-PYPA_AST_TYPE_DECL_SLICE_KIND(Slice) {
+PYPA_AST_EXPR(Slice) {
     AstExpr lower;
     AstExpr upper;
     AstExpr step;
 };
-DEF_AST_TYPE_BY_ID1(Slice);
-PYPA_AST_MEMBERS3(Slice, lower, upper, step);
+PYPA_AST_MEMBERS3(Slice, lower, step, upper);
 
 PYPA_AST_EXPR(Str) {
     String value;
@@ -360,17 +351,17 @@ PYPA_AST_MEMBERS1(Str, value);
 
 PYPA_AST_EXPR(Subscript) {
     AstExpr         value;
-    AstSliceKindPtr slice;
+    AstExpr         slice;
     AstContext      context;
 };
-PYPA_AST_MEMBERS3(Subscript, value, slice, context);
+PYPA_AST_MEMBERS3(Subscript, context, slice, value);
 
 PYPA_AST_STMT(TryExcept) {
     AstStmt         body;
     AstStmt         orelse;
     AstExceptList   handlers;
 };
-PYPA_AST_MEMBERS3(TryExcept, body, orelse, handlers);
+PYPA_AST_MEMBERS3(TryExcept, body, handlers, orelse);
 
 PYPA_AST_STMT(TryFinally) {
     AstStmt body;
@@ -378,31 +369,25 @@ PYPA_AST_STMT(TryFinally) {
 };
 PYPA_AST_MEMBERS2(TryFinally, body, final_body);
 
-PYPA_AST_EXPR(Tuple) {
-    AstExprList elements;
-    AstContext  context;
-};
-PYPA_AST_MEMBERS2(Tuple, elements, context);
-
 PYPA_AST_EXPR(UnaryOp) {
     AstExpr         operand;
     AstUnaryOpType  op;
 };
-PYPA_AST_MEMBERS2(UnaryOp, operand, op);
+PYPA_AST_MEMBERS2(UnaryOp, op, operand);
 
 PYPA_AST_STMT(While) {
     AstExpr test;
     AstStmt body;
     AstStmt orelse;
 };
-PYPA_AST_MEMBERS3(While, test, body, orelse);
+PYPA_AST_MEMBERS3(While, body, orelse, test);
 
 PYPA_AST_STMT(With) {
     AstExpr         context;
     AstExpr         optional;
     AstStmt         body;
 };
-PYPA_AST_MEMBERS3(With, context, optional, body);
+PYPA_AST_MEMBERS3(With, body, context, optional);
 
 
 PYPA_AST_EXPR(YieldExpr) {

@@ -33,13 +33,16 @@ String make_string(String const & input) {
     assert(first_quote != String::npos);
     char quote = input[first_quote];
     size_t string_start = input.find_first_not_of(quote, first_quote);
-    assert(string_start != String::npos);
-    size_t string_end   = input.size() - 1;
-    while(string_end > 0 && input[string_end] == quote) --string_end;
+    if(string_start == String::npos) {
+        // Empty string
+        return result;
+    }
+    assert((string_start - first_quote) < input.size());
+    size_t string_end =  input.size() - (string_start - first_quote);
     assert(string_end != String::npos && string_start <= string_end);
 
     char const * s = input.c_str() + string_start;
-    char const * end = s + string_end;
+    char const * end = input.c_str() + string_end;
     char const * qst = input.c_str() + first_quote;
     char const * tmp = input.c_str();
 
@@ -73,9 +76,9 @@ String make_string(String const & input) {
         char c = *s;
         switch(*s) {
         case '\\':
-            c = *s;
             ++s;
             assert(s < end);
+            c = *s;
             switch(c) {
             case '\n': break;
             case '\\': case '\'': case '\"': *p++ = c; break;
@@ -88,7 +91,8 @@ String make_string(String const & input) {
             case 'a': *p++ = '\007'; break;
             case '0': case '1': case '2': case '3':
             case '4': case '5': case '6': case '7':
-                c = s[-1] - '0';
+                c = c - '0';
+                ++s;
                 if (s < end && '0' <= *s && *s <= '7') {
                     c = (c<<3) + *s++ - '0';
                     if (s < end && '0' <= *s && *s <= '7') {
@@ -98,6 +102,7 @@ String make_string(String const & input) {
                 *p++ = c;
                 break;
             case 'x':
+                ++s;
                 if (s+1 < end && isxdigit(s[0]) && isxdigit(s[1]))
                 {
                     unsigned int x = 0;
@@ -129,6 +134,7 @@ String make_string(String const & input) {
             *p++ = '\\';
             s--;
         }
+        break;
         default:
             *p++ = *s++;
             break;

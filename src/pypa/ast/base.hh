@@ -62,28 +62,6 @@ struct AstStmtT : AstT<Type, AstStatement> {
     AstStmtT() : AstT<Type, AstStatement>(Type){}
 };
 
-PYPA_AST_TYPE_DECL_DERIVED(SliceKind){
-    using AstT<AstType::SliceKind>::AstT;
-};
-DEF_AST_TYPE_BY_ID1(SliceKind);
-PYPA_AST_MEMBERS0(SliceKind);
-
-template<AstType Type>
-struct AstSliceT : AstT<Type, AstSliceKind> {
-
-    AstSliceT()
-    : AstT<Type, AstSliceKind>(Type)
-    {}
-
-    static_assert(
-        Type == AstType::ExtSlice
-     || Type == AstType::Index
-     || Type == AstType::Ellipsis
-     || Type == AstType::Slice,
-     "Not passed type is not a SliceKind"
-    );
-};
-
 PYPA_AST_STMT(Suite) {
     AstStmtList items;
 };

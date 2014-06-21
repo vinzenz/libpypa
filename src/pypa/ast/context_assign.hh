@@ -35,12 +35,6 @@ struct context_assign {
         }
     }
 
-    void operator() (AstExpressions & l) {
-        for(auto & e : l.items) {
-            visit(*this, e);
-        }
-    }
-
     void operator() (AstName & name) {
         name.context = context;
     }
