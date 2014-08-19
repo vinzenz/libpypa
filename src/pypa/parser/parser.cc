@@ -11,7 +11,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-#include  <pypa/parser/apply.hh>
+#include <gmp.h>
+#include <pypa/parser/apply.hh>
 #include <pypa/parser/parser_fwd.hh>
 #include <double-conversion/src/double-conversion.h>
 #include <pypa/ast/context_assign.hh>
@@ -78,29 +79,28 @@ void indentation_error_dbg(State & s, AstPtr ast, int line = -1, char const * fi
 #define syntax_error(s, AST_ITEM, msg) syntax_error_dbg(s, error_transform(AST_ITEM), msg, __LINE__, __FILE__, __PRETTY_FUNCTION__)
 #define indentation_error(s, AST_ITEM) indentation_error_dbg(s, error_transform(AST_ITEM), __LINE__, __FILE__, __PRETTY_FUNCTION__)
 
-
-inline int64_t base_char_to_value(char c) {
-    if(c >= '0' && c <= '9') {
-        return int64_t(c - '0');
-    }
-    if(c >= 'A' && c <= 'F') {
-        return int64_t(c - 'A') + 10;
-    }
-    return int64_t(c - 'a') + 10;
-}
-
 bool number_from_base(int64_t base, State & s, AstNumberPtr & ast) {
     String const & value = top(s).value;
     AstNumber & result = *ast;
+
+    MP_INT integ;
+    mpz_init_set_str(&integ, value.c_str(), base);
+
+    result.num_type = AstNumber::Integer;
     pop(s);
-    result.num_type = (top(s).value == "L" || top(s).value == "l") ? AstNumber::Long : AstNumber::Integer;
-    unpop(s);
-    result.integer = 0;
-    for(auto c : value) {
-        result.integer *= base;
-        int64_t tmp = base_char_to_value(c);
-        result.integer += tmp;
+    if((top(s).value == "L" || top(s).value == "l") || !mpz_fits_sint_p(&integ)) {
+        result.num_type = AstNumber::Long;
     }
+    unpop(s);
+
+    if(result.num_type == AstNumber::Long) {
+        result.str.resize(mpz_sizeinbase(&integ, 10) + 2, 0);
+        mpz_get_str(&result.str[0], 10, &integ);
+    }
+    else {
+        result.integer = mpz_get_si(&integ);
+    }
+    mpz_clear(&integ);
     return true;
 }
 
@@ -382,12 +382,16 @@ bool return_stmt(State & s, AstStmt & ast) {
 }
 
 bool not_test(State & s, AstExpr & ast) {
-    StateGuard guard(s);
+    StateGuard guard(s, ast);
+    AstUnaryOpPtr result;
+    location(s, create(result));
     // expect(s, Token::KeywordNot) not_test || comparison
     if(expect(s, Token::KeywordNot)) {
-        if(!not_test(s, ast)) {
+        result->op = AstUnaryOpType::Not;
+        if(!not_test(s, result->operand)) {
             return false;
         }
+        ast = result;
     }
     else if(!comparison(s, ast)) {
         return false;
@@ -1052,8 +1056,10 @@ bool factor(State & s, AstExpr & ast) {
                         p->floating *= -1.;
                         break;
                     case AstNumber::Integer:
-                    case AstNumber::Long:
                         p->integer *= -1;
+                        break;
+                    case AstNumber::Long:
+                        p->str = '-' + p->str;
                         break;
                     }
                     ast = p;
@@ -1066,8 +1072,10 @@ bool factor(State & s, AstExpr & ast) {
                             p->real->floating *= -1.;
                             break;
                         case AstNumber::Integer:
-                        case AstNumber::Long:
                             p->real->integer *= -1;
+                            break;
+                        case AstNumber::Long:
+                            p->real->str = '-' + p->real->str;
                             break;
                         }
                         ast = p;
@@ -1298,12 +1306,12 @@ bool print_stmt(State & s, AstStmt & ast) {
     // Consume 'print'
     pop(s);
 
-    if(is(s, TokenKind::LeftParen)) {
-        // Normal function call
-        return false;
-    }
+    // if(is(s, TokenKind::LeftParen)) {
+    //     // Normal function call
+    //     return false;
+    // }
 
-    if(s.options.python3only) { // Unsupported
+    if(s.options.python3only || s.future_features.print_function) { // Unsupported
         return false;
     }
 
@@ -1819,16 +1827,21 @@ bool comparison(State & s, AstExpr & ast) {
         return false;
     }
     AstCompareOpType op;
+    AstComparePtr ptr;
+    clone_location(ast, create(ptr));
+    ptr->left = ast;
+    ast = ptr;
     while(comp_op(s, op)) {
-        AstComparePtr ptr;
-        location(s, create(ptr));
-        ptr->left = ast;
-        ast = ptr;
-        ptr->op = op;
-        if(!expr(s, ptr->right)) {
+        ptr->operators.push_back(op);
+        AstExpr right;
+        if(!expr(s, right)) {
             syntax_error(s, ast, "Expected expression after comparison operator");
             return false;
         }
+        ptr->comparators.push_back(right);
+    }
+    if(ptr->operators.empty() && ptr->comparators.empty()) {
+        ast = ptr->left;
     }
     return guard.commit();
 }

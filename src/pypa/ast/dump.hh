@@ -119,6 +119,17 @@ namespace pypa {
         }
 
         template< typename T >
+        inline void dump_padded_member(int depth, std::shared_ptr<T> const & v) {
+            if(!v) { printf("\n"); print_padding(depth+4); }
+            dump_member_value(depth+4, v);
+        }
+
+        template< typename T >
+        inline void dump_padded_member(int depth, T const & v) {
+            dump_member_value(depth+4, v);
+        }
+
+        template< typename T >
         inline void dump_member_value(int depth, std::vector<T> const & v) {
             if(v.empty()) {
                 printf("[]\n");
@@ -126,8 +137,7 @@ namespace pypa {
             else {
                 printf("[");
                 for(auto const & e : v) {
-                    if(!e) { printf("\n"); print_padding(depth+4); }
-                    dump_member_value(depth+4, e);
+                    dump_padded_member(depth, e);
                 }
                 print_padding(depth+4);
                 printf("]\n");

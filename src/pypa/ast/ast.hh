@@ -121,11 +121,11 @@ PYPA_AST_STMT(Continue) {};
 PYPA_AST_MEMBERS0(Continue);
 
 PYPA_AST_EXPR(Compare) {
+    AstExprList comparators;
     AstExpr left;
-    AstCompareOpType op;
-    AstExpr right;
+    std::vector<AstCompareOpType> operators;
 };
-PYPA_AST_MEMBERS3(Compare, left, op, right);
+PYPA_AST_MEMBERS3(Compare, comparators, left, operators);
 
 PYPA_AST_EXPR(Comprehension) {
     AstExpr     target;
@@ -280,8 +280,9 @@ PYPA_AST_EXPR(Number) {
         int64_t integer;
         char    data[sizeof(floating) > sizeof(integer) ? sizeof(floating) : sizeof(integer)];
     };
+    String str;
 };
-PYPA_AST_MEMBERS4(Number, data, floating, integer, num_type);
+PYPA_AST_MEMBERS5(Number, data, floating, integer, num_type, str);
 
 
 PYPA_AST_EXPR(Complex) {

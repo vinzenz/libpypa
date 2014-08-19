@@ -25,6 +25,17 @@ struct FutureFeatures {
     bool print_function;
     bool unicode_literals;
     int  last_line; // last line with a future feature statement
+
+    FutureFeatures()
+    : nested_scopes()
+    , generators()
+    , division()
+    , absolute_imports()
+    , with_statement()
+    , print_function()
+    , unicode_literals()
+    , last_line()
+    {}
 };
 
 }

@@ -79,6 +79,7 @@ String make_string(String const & input) {
             ++s;
             assert(s < end);
             c = *s;
+            ++s;
             switch(c) {
             case '\n': break;
             case '\\': case '\'': case '\"': *p++ = c; break;
@@ -92,7 +93,6 @@ String make_string(String const & input) {
             case '0': case '1': case '2': case '3':
             case '4': case '5': case '6': case '7':
                 c = c - '0';
-                ++s;
                 if (s < end && '0' <= *s && *s <= '7') {
                     c = (c<<3) + *s++ - '0';
                     if (s < end && '0' <= *s && *s <= '7') {
@@ -102,7 +102,6 @@ String make_string(String const & input) {
                 *p++ = c;
                 break;
             case 'x':
-                ++s;
                 if (s+1 < end && isxdigit(s[0]) && isxdigit(s[1]))
                 {
                     unsigned int x = 0;

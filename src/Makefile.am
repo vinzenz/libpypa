@@ -3,6 +3,7 @@ AM_CFLAGS=-DIEEE_8087
 
 lib_LTLIBRARIES=libpypa.la
 libpypa_la_CXXFLAGS=$(PYPA_CXXFLAGS)
+libpypa_la_LDFLAGS=$(PYPA_LDFLAGS) -lgmp
 libpypa_la_SOURCES=\
 	pypa/ast/ast.cc \
 	pypa/ast/dump.cc \
