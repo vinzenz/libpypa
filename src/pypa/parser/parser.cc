@@ -88,10 +88,13 @@ bool number_from_base(int64_t base, State & s, AstNumberPtr & ast) {
 
     result.num_type = AstNumber::Integer;
     pop(s);
-    if((top(s).value == "L" || top(s).value == "l") || !mpz_fits_sint_p(&integ)) {
+    bool long_post_fix = (top(s).value == "L" || top(s).value == "l");
+    if(!long_post_fix) {
+        unpop(s);
+    }
+    if(long_post_fix || !mpz_fits_sint_p(&integ)) {
         result.num_type = AstNumber::Long;
     }
-    unpop(s);
 
     if(result.num_type == AstNumber::Long) {
         result.str.resize(mpz_sizeinbase(&integ, 10) + 2, 0);
@@ -137,9 +140,6 @@ bool number(State & s, AstNumberPtr & ast) {
     }
     if(base && number_from_base(base, s, ast)) {
         pop(s);
-        if(ast->num_type == AstNumber::Long) {
-            pop(s);
-        }
         return guard.commit();
     }
     return false;
@@ -1379,13 +1379,16 @@ bool testlist(State & s, AstExpr & ast) {
         return false;
     }
     ptr->elements.push_back(temp);
+    bool last_was_comma = false;
     while(expect(s, TokenKind::Comma)) {
+        last_was_comma = true;
         if(!test(s, temp)) {
             break;
         }
+        last_was_comma = false;
         ptr->elements.push_back(temp);
     }
-    if(ptr->elements.size() == 1) {
+    if(ptr->elements.size() == 1 && !last_was_comma) {
         ast = ptr->elements.front();
         ptr.reset();
     }
@@ -1850,8 +1853,10 @@ bool term(State & s, AstExpr & ast) {
     StateGuard guard(s, ast);
     // factor (( factor)*
     if(factor(s, ast)) {
-        TokenKind k = kind(top(s));
-        while(expect(s, TokenKind::Star) || expect(s, TokenKind::Slash) || expect(s, TokenKind::Percent) || expect(s, TokenKind::DoubleSlash)) {
+        while(is(s, TokenKind::Star) || is(s, TokenKind::Slash) || is(s, TokenKind::Percent) || is(s, TokenKind::DoubleSlash)) {
+            TokenKind k = kind(top(s));
+            pop(s);
+
             AstBinOpPtr bin;
             location(s, create(bin));
             bin->left = ast;
