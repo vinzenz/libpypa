@@ -35,6 +35,13 @@ struct context_assign {
         }
     }
 
+    void operator() (AstList & lst) {
+        lst.context = context == AstContext::Param ? AstContext::Store : context;
+        for(auto & e : lst.elements) {
+            visit(context_assign{lst.context}, e);
+        }
+    }
+
     void operator() (AstName & name) {
         name.context = context;
     }
