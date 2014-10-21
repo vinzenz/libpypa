@@ -157,6 +157,7 @@ namespace pypa {
         case AstModuleKind::Interactive:    return "Interactive";
         case AstModuleKind::Suite:          return "Suite";
         }
+        return "UNKNOWN AstModuleKind";
     }
 
     enum class AstType {

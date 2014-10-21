@@ -41,9 +41,10 @@ void report_error(State & s) {
     if(!s.options.printerrors) {
         return;
     }
-    fprintf(stderr, "  File \"%s\", line %d\n    %s\n    ", e.file_name.c_str(), e.cur.line, e.line.c_str());
+    unsigned long long cur_line = e.cur.line;
+    fprintf(stderr, "  File \"%s\", line %llu\n    %s\n    ", e.file_name.c_str(), cur_line, e.line.c_str());
     if(e.cur.column == 0) ++e.cur.column;
-    for(int i = 0; i < e.cur.column - 1; ++i) {
+    for(unsigned i = 0; i < e.cur.column - 1; ++i) {
         fputc(' ', stderr);
     }
     fprintf(stderr, "^\n%s: %s", e.type == ErrorType::SyntaxError ? "SyntaxError" : e.type == ErrorType::SyntaxWarning ? "SyntaxWarning" : "IndentationError", e.message.c_str());
@@ -2617,7 +2618,7 @@ bool parse(Lexer & lexer,
            AstModulePtr & ast,
            SymbolTablePtr & symbols,
            ParserOptions options /*= ParserOptions()*/) {
-    State state{&lexer, {}, {}, {}, lexer.next(), {}, options};
+    State state{&lexer, {}, {}, {}, lexer.next(), {}, options, {}};
     if(file_input(state, ast)) {
         symbols = create_symbol_table(ast, state);
         return true;

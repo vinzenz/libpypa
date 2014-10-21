@@ -40,7 +40,7 @@ namespace pypa {
             return size_;
         }
 
-        ValueType * const data() const {
+        ValueType const * data() const {
             return data_;
         }
 
@@ -48,11 +48,11 @@ namespace pypa {
             return size_ == 0;
         }
 
-        ValueType * const begin() const {
+        ValueType const * begin() const {
             return data();
         }
 
-        ValueType * const end() const {
+        ValueType const * end() const {
             return data() + size();
         }
     };
@@ -65,7 +65,7 @@ namespace pypa {
         : ConstArray(u)
         {}
 
-        char const * const c_str() const {
+        char const * c_str() const {
             return data();
         }
 

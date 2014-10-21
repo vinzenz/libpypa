@@ -1,4 +1,4 @@
-PYPA_CXXFLAGS=-std=c++11 -I$(top_srcdir)/src
+PYPA_CXXFLAGS=-std=c++11 -I$(top_srcdir)/src -W -Wall -Werror -pedantic -Wno-unused-parameter -Wno-unused-local-typedefs
 AM_CFLAGS=-DIEEE_8087
 
 lib_LTLIBRARIES=libpypa.la

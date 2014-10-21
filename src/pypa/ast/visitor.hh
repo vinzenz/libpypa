@@ -28,6 +28,9 @@ inline void visit(F visitor, AstPtr v) {
 #define PYPA_AST_TYPE(X) case AstType::X: visitor(std::static_pointer_cast<typename AstTypeByID<AstType::X>::Type>(v)); break;
 #   include <pypa/ast/ast_type.inl>
 #undef PYPA_AST_TYPE
+        default:
+        assert("Invalid AST type received" && false);
+            break;
     }
 }
 
@@ -39,7 +42,11 @@ inline R visit(F visitor, AstPtr v) {
 #define PYPA_AST_TYPE(X) case AstType::X: return visitor(std::static_pointer_cast<typename AstTypeByID<AstType::X>::Type>(v));
 #   include <pypa/ast/ast_type.inl>
 #undef PYPA_AST_TYPE
+        default:
+        assert("Invalid AST type received" && false);
+            break;
     }
+    return R();
 }
 
 template<typename R, typename F>
@@ -49,7 +56,11 @@ inline R visit(F visitor, Ast & v) {
 #define PYPA_AST_TYPE(X) case AstType::X: return visitor(static_cast<AstTypeByID<AstType::X>::Type&>(v));
 #   include <pypa/ast/ast_type.inl>
 #undef PYPA_AST_TYPE
+        default:
+        assert("Invalid AST type received" && false);
+            break;
     }
+    return R();
 }
 
 template<typename F>
@@ -59,6 +70,9 @@ inline void visit(F visitor, Ast & v) {
 #define PYPA_AST_TYPE(X) case AstType::X: visitor(static_cast<AstTypeByID<AstType::X>::Type&>(v)); break;
 #   include <pypa/ast/ast_type.inl>
 #undef PYPA_AST_TYPE
+        default:
+        assert("Invalid AST type received" && false);
+            break;
     }
 }
 
@@ -69,7 +83,11 @@ inline R visit(F visitor, Ast const & v) {
 #define PYPA_AST_TYPE(X) case AstType::X: return visitor(static_cast<AstTypeByID<AstType::X>::Type const &>(v));
 #   include <pypa/ast/ast_type.inl>
 #undef PYPA_AST_TYPE
+        default:
+        assert("Invalid AST type received" && false);
+            break;
     }
+    return R();
 }
 
 template<typename F>
@@ -79,6 +97,9 @@ inline void visit(F visitor, Ast const & v) {
 #define PYPA_AST_TYPE(X) case AstType::X: visitor(static_cast<AstTypeByID<AstType::X>::Type const &>(v)); break;
 #   include <pypa/ast/ast_type.inl>
 #undef PYPA_AST_TYPE
+        default:
+        assert("Invalid AST type received" && false);
+            break;
     }
 }
 

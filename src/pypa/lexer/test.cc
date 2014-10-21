@@ -37,7 +37,7 @@ int main(int argc, char const ** argv) {
             char const *level[] = {"Info", "Warn", "Error"};
             for(auto const & i : l.info()) {
                 ++warnings;
-                printf("\t%s: %d:%d %s\n", level[int(i.level)], i.info.line, i.info.column, i.value.c_str());
+                printf("\t%s: %d:%d %s\n", level[int(i.level)], int(i.info.line), int(i.info.column), i.value.c_str());
             }
         }
 //        printf("%s current line: %d\n", file, l.line_);

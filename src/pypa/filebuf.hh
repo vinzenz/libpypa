@@ -43,6 +43,6 @@ private:
     bool fill_buffer();
 };
 
-};
+}
 
 #endif //GUARD_PYPA_FILEBUF_HH_INCLUDED

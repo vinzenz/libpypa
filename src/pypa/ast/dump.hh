@@ -76,7 +76,8 @@ namespace pypa {
         }
 
         inline void dump_member_value(int depth, int64_t const & v) {
-            printf("%lld\n", int64_t(v));
+            long long int p = v;
+            printf("%lld\n", p);
         }
 
         inline void dump_member_value(int depth, double const & v) {

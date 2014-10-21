@@ -46,20 +46,20 @@ String make_string(String const & input) {
     char const * qst = input.c_str() + first_quote;
     char const * tmp = input.c_str();
 
-    bool unicode = false;
-    bool raw = false;
-    bool bytes = false;
+    // bool unicode = false;
+    // bool raw = false;
+    // bool bytes = false;
 
     while(tmp != qst) {
         switch(*tmp) {
         case 'u': case 'U':
-            unicode = true;
+            // unicode = true;
             break;
         case 'r': case 'R':
-            raw = true;
+            // raw = true;
             break;
         case 'b': case 'B':
-            bytes = true;
+            // bytes = true;
             break;
         default:
             assert("Unknown character prefix" && false);

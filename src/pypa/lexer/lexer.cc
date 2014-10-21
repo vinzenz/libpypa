@@ -176,9 +176,9 @@ namespace pypa {
     }
 
     TokenInfo Lexer::get_string(TokenInfo & tok, char first, char prefix) {
-        bool binary = prefix == 'b';
-        bool unicode = prefix == 'u';
-        bool raw = prefix == 'r';
+        // bool binary = prefix == 'b';
+        // bool unicode = prefix == 'u';
+        // bool raw = prefix == 'r';
         char cur = first;
         int quote_count = 0;
         int end_quote_count = 0;
