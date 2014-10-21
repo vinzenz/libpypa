@@ -76,3 +76,5 @@ pypalexer_HEADERS=\
 	pypa/lexer/tokendef.hh \
 	pypa/lexer/tokens.hh \
 	$(NULL)
+
+EXTRA_DIST=double-conversion
