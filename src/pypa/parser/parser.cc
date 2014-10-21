@@ -107,17 +107,22 @@ bool number_from_base(int64_t base, State & s, AstNumberPtr & ast) {
     return true;
 }
 
+bool string_to_double(String const & s, double & result) {
+    double_conversion::StringToDoubleConverter conv(0, 0.0, 0.0, 0, 0);
+    int length = int(s.size());
+    int processed = 0;
+    result = conv.StringToDouble(s.c_str(), length, &processed);
+    return length == processed;
+}
+
 bool number(State & s, AstNumberPtr & ast) {
     StateGuard guard(s, ast);
     location(s, create(ast));
     int base = 0;
     if(is(s, Token::NumberFloat)) {
         String const & dstr = top(s).value;
-        double_conversion::StringToDoubleConverter conv(0, 0.0, 0.0, 0, 0);
-        int length = int(dstr.size());
-        int processed = 0;
-        double result = conv.StringToDouble(dstr.c_str(), length, &processed);
-        if(length != processed) {
+        double result = 0;
+        if(!string_to_double(dstr, result)) {
             syntax_error(s, ast, "Invalid floating point number");
             return false;
         }
@@ -986,6 +991,7 @@ bool simple_stmt(State & s, AstStmt & ast) {
     suite_->items.push_back(tmp);
     if(expect(s, TokenKind::SemiColon)) {
         while(small_stmt(s, tmp)) {
+            suite_->items.push_back(tmp);
             if(!expect(s, TokenKind::SemiColon)) {
                 break;
             }
@@ -1577,7 +1583,13 @@ bool suite(State & s, AstStmt & ast) {
         if(expect(s, Token::Indent)) {
             AstStmt stmt_;
             if(stmt(s, stmt_)) {
-                suite_->items.push_back(stmt_);
+                if(stmt_->type == AstType::Suite) {
+                    AstSuitePtr s = std::static_pointer_cast<AstSuite>(stmt_);
+                    suite_->items.insert(suite_->items.end(), s->items.begin(), s->items.end());
+                }
+                else {
+                    suite_->items.push_back(stmt_);
+                }
                 stmt_.reset();
                 while(stmt(s, stmt_)) {
                     suite_->items.push_back(stmt_);
