@@ -17,6 +17,7 @@
 #include <pypa/ast/ast.hh>
 #include <pypa/lexer/lexer.hh>
 #include <pypa/parser/symbol_table.hh>
+#include <functional>
 
 namespace pypa {
 
@@ -26,12 +27,16 @@ struct ParserOptions {
     , python3allowed(false)
     , docstrings(true)
     , printerrors(true)
+    , printdbgerrors(false)
+    , error_handler()
     {}
 
     bool python3only;
     bool python3allowed;
     bool docstrings;
     bool printerrors;
+    bool printdbgerrors;
+    std::function<void(pypa::Error)> error_handler;
 };
 
 bool parse(Lexer & lexer,

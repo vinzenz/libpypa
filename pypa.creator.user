@@ -1,7 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE QtCreatorProject>
-<!-- Written by QtCreator 3.1.2, 2014-08-19T11:07:18. -->
+<!-- Written by QtCreator 3.2.1, 2014-10-21T15:59:16. -->
 <qtcreator>
+ <data>
+  <variable>EnvironmentId</variable>
+  <value type="QByteArray">{6e1bb764-d64a-45b4-aac4-d69a55bc3f76}</value>
+ </data>
  <data>
   <variable>ProjectExplorer.Project.ActiveTarget</variable>
   <value type="int">0</value>
@@ -157,7 +161,7 @@
     </valuelist>
     <value type="int" key="PE.EnvironmentAspect.Base">2</value>
     <valuelist type="QVariantList" key="PE.EnvironmentAspect.Changes"/>
-    <value type="QString" key="ProjectExplorer.CustomExecutableRunConfiguration.Arguments">/home/vfeenstr/devel/apps/pyston/test/tests/long.py</value>
+    <value type="QString" key="ProjectExplorer.CustomExecutableRunConfiguration.Arguments">/home/vfeenstr/devel/apps/pyston/test/tests/complex.py</value>
     <value type="QString" key="ProjectExplorer.CustomExecutableRunConfiguration.Executable">/home/vfeenstr/devel/apps/pypa/src/parser-test</value>
     <value type="bool" key="ProjectExplorer.CustomExecutableRunConfiguration.UseTerminal">true</value>
     <value type="QString" key="ProjectExplorer.CustomExecutableRunConfiguration.WorkingDirectory">/home/vfeenstr/devel/apps/pypa/src/</value>
@@ -179,11 +183,11 @@
   <value type="int">1</value>
  </data>
  <data>
-  <variable>ProjectExplorer.Project.Updater.EnvironmentId</variable>
-  <value type="QByteArray">{6e1bb764-d64a-45b4-aac4-d69a55bc3f76}</value>
+  <variable>ProjectExplorer.Project.Updater.FileVersion</variable>
+  <value type="int">16</value>
  </data>
  <data>
-  <variable>ProjectExplorer.Project.Updater.FileVersion</variable>
-  <value type="int">15</value>
+  <variable>Version</variable>
+  <value type="int">16</value>
  </data>
 </qtcreator>

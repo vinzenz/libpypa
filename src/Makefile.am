@@ -1,4 +1,4 @@
-PYPA_CXXFLAGS=-std=c++11 -I$(top_srcdir)/src -fstack-protector-strong
+PYPA_CXXFLAGS=-std=c++11 -I$(top_srcdir)/src
 AM_CFLAGS=-DIEEE_8087
 
 lib_LTLIBRARIES=libpypa.la

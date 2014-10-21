@@ -28,6 +28,7 @@ namespace pypa {
     struct Error {
         ErrorType    type;
         String       message;
+        String       file_name;
         TokenInfo    cur;
         AstPtr       ast;
         std::string  line;

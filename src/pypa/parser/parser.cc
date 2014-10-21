@@ -33,17 +33,21 @@ AstPtr error_transform(T const & t) {
 }
 
 void report_error(State & s) {
+    Error & e = s.errors.top();
+    if(s.options.error_handler) {
+        s.options.error_handler(e);
+    }
+
     if(!s.options.printerrors) {
         return;
     }
-    Error & e = s.errors.top();
-    fprintf(stderr, "  File \"%s\", line %d\n    %s\n    ", s.lexer->get_name().c_str(), e.cur.line, e.line.c_str());
+    fprintf(stderr, "  File \"%s\", line %d\n    %s\n    ", e.file_name.c_str(), e.cur.line, e.line.c_str());
     if(e.cur.column == 0) ++e.cur.column;
     for(int i = 0; i < e.cur.column - 1; ++i) {
         fputc(' ', stderr);
     }
     fprintf(stderr, "^\n%s: %s", e.type == ErrorType::SyntaxError ? "SyntaxError" : e.type == ErrorType::SyntaxWarning ? "SyntaxWarning" : "IndentationError", e.message.c_str());
-    if(e.detected_line != -1) {
+    if(e.detected_line != -1 && s.options.printdbgerrors) {
         fprintf(stderr, "\n-> Reported @%s:%d in %s\n\n", e.detected_file, e.detected_line, e.detected_function);
     }
 }
@@ -52,7 +56,7 @@ void add_symbol_error(State & s, char const * message, int line, int column, int
     TokenInfo ti = s.tok_cur;
     ti.line = line;
     ti.column = column;
-    s.errors.push({ErrorType::SyntaxError, message, ti, {}, s.lexer->get_line(line), reported_line, reported_file_name, reported_function });
+    s.errors.push({ErrorType::SyntaxError, message, s.lexer->get_name(), ti, {}, s.lexer->get_line(line), reported_line, reported_file_name, reported_function });
     report_error(s);
 }
 
@@ -62,7 +66,7 @@ void syntax_error_dbg(State & s, AstPtr ast, char const * message, int line = -1
         cur.line    = ast->line;
         cur.column  = ast->column;
     }
-    s.errors.push({ErrorType::SyntaxError, message, cur, ast, s.lexer->get_line(cur.line), line, file ? file : "", function ? function : ""});
+    s.errors.push({ErrorType::SyntaxError, message, s.lexer->get_name(), cur, ast, s.lexer->get_line(cur.line), line, file ? file : "", function ? function : ""});
     report_error(s);
 }
 
@@ -72,7 +76,7 @@ void indentation_error_dbg(State & s, AstPtr ast, int line = -1, char const * fi
         cur.line    = ast->line;
         cur.column  = ast->column;
     }
-    s.errors.push({ErrorType::IndentationError, "", cur, ast, s.lexer->get_line(cur.line), line, file ? file : "", function ? function : ""});
+    s.errors.push({ErrorType::IndentationError, "", s.lexer->get_name(), cur, ast, s.lexer->get_line(cur.line), line, file ? file : "", function ? function : ""});
     report_error(s);
 }
 
@@ -747,6 +751,9 @@ bool atom(State & s, AstExpr & ast) {
             if(!consume_value(s, Token::NumberComplex, ptr->imag)) {
                 assert("This should not happen at this point" && false);
                 return false;
+            }
+            if(!ptr->imag.empty() && ptr->imag.back() == 'j') {
+                ptr->imag.pop_back();
             }
         }
         else {
@@ -2303,7 +2310,7 @@ bool import_from(State & s, AstStmt & ast) {
                         ++iter;
                     }
                     if(!found) {
-                        syntax_error(s, e, ("future feature '" + name.id + "' is not defined").c_str());
+                        syntax_error(s, e, ("future feature " + name.id + " is not defined").c_str());
                     }
                     return found;
                 }
@@ -2598,6 +2605,7 @@ SymbolTablePtr create_symbol_table(AstPtr const & a, State & s) {
     table->file_name = s.lexer->get_name();
     create_from_ast(table, *a,
                     [&s](Error e) {
+                        e.file_name = s.lexer->get_name();
                         e.line = s.lexer->get_line(e.cur.line);
                         s.errors.push(e);
                         report_error(s);

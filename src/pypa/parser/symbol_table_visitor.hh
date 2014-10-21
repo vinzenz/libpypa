@@ -40,6 +40,7 @@ namespace pypa {
                 push_error({
                     type,
                     message,
+                    {},
                     {{}, o.line, o.column, {}},
                     {},
                     {},
