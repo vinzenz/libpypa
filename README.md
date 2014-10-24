@@ -60,37 +60,44 @@ And here the output of the test parser:
         [Suite]
           - items: [
                 [DocString]
-                  - doc: """
+                  - doc:
         A "Hello World" example for the pypa parser
-    """
+
 
                 [Import]
                   - names:
-                    [Name]
-                      - context: Load
-                      - id: sys
+                    [Alias]
+                      - as_name: <NULL>
+                      - name:
+                        [Name]
+                          - context: Load
+                          - dotted: False
+                          - id: sys
 
                 [Print]
                   - destination:
                     [Attribute]
-                      - value:
-                        [Name]
-                          - context: Load
-                          - id: sys
-                      - context: Load
                       - attribute:
                         [Name]
                           - context: Load
+                          - dotted: False
                           - id: stdout
+                      - context: Load
+                      - value:
+                        [Name]
+                          - context: Load
+                          - dotted: False
+                          - id: sys
                   - newline: True
                   - values: [
                         [Str]
-                          - value: "Hello"
+                          - value: Hello
 
                         [Str]
-                          - value: "World!"
+                          - value: World!
                         ]
                 ]
+      - kind: Module
 
 And here the parse tree of python: (astdump.py can be found in tools)
 
