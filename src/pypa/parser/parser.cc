@@ -97,7 +97,7 @@ bool number_from_base(int64_t base, State & s, AstNumberPtr & ast) {
     if(!long_post_fix) {
         unpop(s);
     }
-    if(long_post_fix || !mpz_fits_sint_p(&integ)) {
+    if(long_post_fix || !mpz_fits_slong_p(&integ)) {
         result.num_type = AstNumber::Long;
     }
 
