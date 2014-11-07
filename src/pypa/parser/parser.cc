@@ -2618,7 +2618,11 @@ bool parse(Lexer & lexer,
            AstModulePtr & ast,
            SymbolTablePtr & symbols,
            ParserOptions options /*= ParserOptions()*/) {
-    State state{&lexer, {}, {}, {}, lexer.next(), {}, options, {}};
+    State state;
+    state.lexer = &lexer;
+    state.tok_cur = lexer.next();
+    state.options = options;
+
     if(file_input(state, ast)) {
         symbols = create_symbol_table(ast, state);
         return true;

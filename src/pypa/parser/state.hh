@@ -82,7 +82,7 @@ namespace {
     };
 
     inline void commit(State & s) {
-        s.popped = {};
+        s.popped = std::stack<TokenInfo>();
     }
 
     inline TokenInfo const & top(State & s) {
