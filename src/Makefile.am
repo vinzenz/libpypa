@@ -1,8 +1,6 @@
-PYPA_CXXFLAGS=-std=c++11 -I$(top_srcdir)/src -W -Wall -Werror -pedantic -Wno-unused-parameter -Wno-unused-local-typedefs
-AM_CFLAGS=-DIEEE_8087
+AM_CPPFLAGS=-DIEEE_8087
 
 lib_LTLIBRARIES=libpypa.la
-libpypa_la_CXXFLAGS=$(PYPA_CXXFLAGS)
 libpypa_la_LDFLAGS=$(PYPA_LDFLAGS) -lgmp
 libpypa_la_SOURCES=\
 	pypa/ast/ast.cc \
@@ -23,13 +21,11 @@ libpypa_la_SOURCES=\
 	$(NULL)
 
 noinst_PROGRAMS=lexer-test parser-test
-lexer_test_CXXFLAGS=$(PYPA_CXXFLAGS)
 lexer_test_SOURCES=\
 	pypa/lexer/test.cc \
 	$(NULL)
 lexer_test_LDADD=libpypa.la
 
-parser_test_CXXFLAGS=$(PYPA_CXXFLAGS)
 parser_test_SOURCES=\
 	pypa/parser/test.cc \
 	$(NULL)
