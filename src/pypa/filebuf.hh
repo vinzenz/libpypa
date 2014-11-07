@@ -18,7 +18,11 @@
 
 namespace pypa {
 
-union file_handle_t{ int unix; void * win; };
+#if defined(WIN32)
+    typedef void* file_handle_t;
+#else
+    typedef int file_handle_t;
+#endif
 
 class FileBuf {
     static const unsigned BufferSize = 32;
