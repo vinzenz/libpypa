@@ -53,6 +53,7 @@ void report_error(State & s) {
     }
 }
 
+#if 0
 void add_symbol_error(State & s, char const * message, int line, int column, int reported_line, char const * reported_file_name, char const * reported_function) {
     TokenInfo ti = s.tok_cur;
     ti.line = line;
@@ -60,6 +61,7 @@ void add_symbol_error(State & s, char const * message, int line, int column, int
     s.errors.push({ErrorType::SyntaxError, message, s.lexer->get_name(), ti, {}, s.lexer->get_line(line), reported_line, reported_file_name, reported_function });
     report_error(s);
 }
+#endif
 
 void syntax_error_dbg(State & s, AstPtr ast, char const * message, int line = -1, char const * file = 0, char const * function = 0) {
     TokenInfo cur = top(s);
@@ -408,7 +410,7 @@ bool not_test(State & s, AstExpr & ast) {
     }
     return guard.commit();
 }
-
+#if 0
 bool testlist1(State & s, AstExpr & ast) {
     StateGuard guard(s, ast);
     location(s, create(ast));
@@ -432,6 +434,7 @@ bool testlist1(State & s, AstExpr & ast) {
     }
     return guard.commit();
 }
+#endif
 
 bool testlist_safe(State & s, AstExpr & ast) {
     StateGuard guard(s, ast);
@@ -2526,6 +2529,7 @@ bool yield_stmt(State & s, AstStmt & ast) {
     return guard.commit();
 }
 
+#if 0
 bool eval_input(State & s, AstModulePtr & ast) {
     StateGuard guard(s, ast);
     location(s, create(ast));
@@ -2571,6 +2575,7 @@ bool single_input(State & s, AstModulePtr & ast) {
     }
     return false;
 }
+#endif
 
 bool file_input(State & s, AstModulePtr & ast) {
     StateGuard guard(s, ast);

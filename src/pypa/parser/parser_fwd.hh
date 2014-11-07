@@ -25,7 +25,9 @@ namespace pypa {
     bool arith_expr(State & s, AstExpr & ast);
     bool assert_stmt(State & s, AstStmt & ast);
     bool atom(State & s, AstExpr & ast);
+#if 0
     bool augassign(State & s, AstExpr & ast);
+#endif
     bool break_stmt(State & s, AstStmt & ast);
     bool classdef(State & s, AstStmt & ast);
     bool comp_for(State & s, AstExprList & ast);
@@ -42,7 +44,9 @@ namespace pypa {
     bool dotted_as_name(State & s, AstExpr & ast);
     bool dotted_as_names(State & s, AstExpr & ast);
     bool dotted_name(State & s, AstExpr & ast);
+#if 0
     bool eval_input(State & s, AstModulePtr & ast);
+#endif
     bool except_clause(State & s, AstExpr & ast);
     bool exec_stmt(State & s, AstStmt & ast);
     bool expr(State & s, AstExpr & ast);
@@ -78,7 +82,9 @@ namespace pypa {
     bool return_stmt(State & s, AstStmt & ast);
     bool shift_expr(State & s, AstExpr & ast);
     bool simple_stmt(State & s, AstStmt & ast);
+#if 0
     bool single_input(State & s, AstModulePtr & ast);
+#endif
     bool sliceop(State & s, AstExpr & ast);
     bool small_stmt(State & s, AstStmt & ast);
     bool stmt(State & s, AstStmt & ast);
@@ -88,7 +94,9 @@ namespace pypa {
     bool term(State & s, AstExpr & ast);
     bool test(State & s, AstExpr & ast);
     bool testlist(State & s, AstExpr & ast);
+#if 0
     bool testlist_comp(State & s, AstExpr & ast);
+#endif
     bool testlist_safe(State & s, AstExpr & ast);
     bool trailer(State & s, AstExpr & ast, AstExpr target);
     bool try_stmt(State & s, AstStmt & ast);
