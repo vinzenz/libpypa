@@ -35,6 +35,9 @@ parser_test_SOURCES=\
 	$(NULL)
 parser_test_LDADD=libpypa.la
 
+check-local:lexer-test parser-test $(srcdir)/run-tests.sh
+	CPYTHON_SRC=$(CPYTHON_SRC) $(srcdir)/run-tests.sh
+
 pypadir=$(includedir)/pypa
 pypa_HEADERS=\
 	pypa/filebuf.hh \

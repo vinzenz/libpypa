@@ -14,6 +14,11 @@ AM_PROG_AR
 AC_CONFIG_MACRO_DIR([m4])
 LT_INIT
 
+AC_ARG_WITH([cpython-src],
+            [AS_HELP_STRING([--with-cpython-src],
+                            [path to cpython sources, to feed the test suite])])
+AC_SUBST([CPYTHON_SRC], [$with_cpython_src])
+
 AC_CONFIG_FILES([
     Makefile
     src/Makefile
