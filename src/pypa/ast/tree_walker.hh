@@ -70,7 +70,7 @@ namespace detail {
 }
 
 template< typename AstT, typename F >
-void walk_tree(AstT & t, F f, int depth = 0) {
+void walk_tree(AstT & t, F f, int depth) {
     visit(detail::tree_walk_visitor<F>(&f, depth), t);
 }
 
