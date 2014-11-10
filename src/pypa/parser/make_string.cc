@@ -47,7 +47,7 @@ String make_string(String const & input) {
     char const * tmp = input.c_str();
 
     // bool unicode = false;
-    // bool raw = false;
+    bool raw = false;
     // bool bytes = false;
 
     while(tmp != qst) {
@@ -56,7 +56,7 @@ String make_string(String const & input) {
             // unicode = true;
             break;
         case 'r': case 'R':
-            // raw = true;
+            raw = true;
             break;
         case 'b': case 'B':
             // bytes = true;
@@ -74,70 +74,75 @@ String make_string(String const & input) {
 
     while(s < end) {
         char c = *s;
-        switch(*s) {
-        case '\\':
-            ++s;
-            assert(s < end);
-            c = *s;
-            ++s;
-            switch(c) {
-            case '\n': break;
-            case '\\': case '\'': case '\"': *p++ = c; break;
-            case 'b': *p++ = '\b'; break;
-            case 'f': *p++ = '\014'; break; /* FF */
-            case 't': *p++ = '\t'; break;
-            case 'n': *p++ = '\n'; break;
-            case 'r': *p++ = '\r'; break;
-            case 'v': *p++ = '\013'; break;
-            case 'a': *p++ = '\007'; break;
-            case '0': case '1': case '2': case '3':
-            case '4': case '5': case '6': case '7':
-                c = c - '0';
-                if (s < end && '0' <= *s && *s <= '7') {
-                    c = (c<<3) + *s++ - '0';
+        if(raw) {
+            *p++ = *s++;
+        }
+        else { // !raw
+            switch(*s) {
+            case '\\':
+                ++s;
+                assert(s < end);
+                c = *s;
+                ++s;
+                switch(c) {
+                case '\n': break;
+                case '\\': case '\'': case '\"': *p++ = c; break;
+                case 'b': *p++ = '\b'; break;
+                case 'f': *p++ = '\014'; break; /* FF */
+                case 't': *p++ = '\t'; break;
+                case 'n': *p++ = '\n'; break;
+                case 'r': *p++ = '\r'; break;
+                case 'v': *p++ = '\013'; break;
+                case 'a': *p++ = '\007'; break;
+                case '0': case '1': case '2': case '3':
+                case '4': case '5': case '6': case '7':
+                    c = c - '0';
                     if (s < end && '0' <= *s && *s <= '7') {
                         c = (c<<3) + *s++ - '0';
+                        if (s < end && '0' <= *s && *s <= '7') {
+                            c = (c<<3) + *s++ - '0';
+                        }
                     }
-                }
-                *p++ = c;
-                break;
-            case 'x':
-                if (s+1 < end && isxdigit(s[0]) && isxdigit(s[1]))
-                {
-                    unsigned int x = 0;
-                    c = *s;
-                    s++;
-                    if (isdigit(c))
-                        x = c - '0';
-                    else if (islower(c))
-                        x = 10 + c - 'a';
-                    else
-                        x = 10 + c - 'A';
-                    x = x << 4;
-                    c = *s;
-                    s++;
-                    if (isdigit(c))
-                        x += c - '0';
-                    else if (islower(c))
-                        x += 10 + c - 'a';
-                    else
-                        x += 10 + c - 'A';
-                    *p++ = x;
+                    *p++ = c;
                     break;
+                case 'x':
+                    if (s+1 < end && isxdigit(s[0]) && isxdigit(s[1]))
+                    {
+                        unsigned int x = 0;
+                        c = *s;
+                        s++;
+                        if (isdigit(c))
+                            x = c - '0';
+                        else if (islower(c))
+                            x = 10 + c - 'a';
+                        else
+                            x = 10 + c - 'A';
+                        x = x << 4;
+                        c = *s;
+                        s++;
+                        if (isdigit(c))
+                            x += c - '0';
+                        else if (islower(c))
+                            x += 10 + c - 'a';
+                        else
+                            x += 10 + c - 'A';
+                        *p++ = x;
+                        break;
+                    }
+                    /* skip \x */
+                    if (s < end && isxdigit(s[0]))
+                        s++; /* and a hexdigit */
+                    break;
+                default:
+                    *p++ = '\\';
+                    s--;
                 }
-                /* skip \x */
-                if (s < end && isxdigit(s[0]))
-                    s++; /* and a hexdigit */
-                break;
-        default:
-            *p++ = '\\';
-            s--;
-        }
-        break;
-        default:
-            *p++ = *s++;
             break;
-        }
+            default:
+                *p++ = *s++;
+                break;
+            }
+        } // else !raw
     }
     return result;
 }
