@@ -302,7 +302,18 @@ bool try_stmt(State & s, AstStmt & ast) {
             syntax_error(s, ast, "expected `:`");
             return false;
         }
-        ptr->body = try_except;
+        if(try_except->handlers.empty()
+           && !try_except->orelse
+           && try_except->body
+           && try_except->body->type == AstType::Suite
+           && std::static_pointer_cast<AstSuite>(try_except->body)->items.size() == 1
+           && std::static_pointer_cast<AstSuite>(try_except->body)->items[0]
+           && std::static_pointer_cast<AstSuite>(try_except->body)->items[0]->type == AstType::TryExcept) {
+            ptr->body = try_except->body;
+        }
+        else {
+            ptr->body = try_except;
+        }
         if(!suite(s, ptr->final_body)) {
             return false;
         }
@@ -792,18 +803,12 @@ bool atom(State & s, AstExpr & ast) {
     }
     // || STRING+
     else if(is(s, Token::String)) {
-        AstTuplePtr ptr;
-        location(s, create(ptr));
-        ast = ptr;
+        AstStrPtr str;
+        location(s, create(str));
+        ast = str;
         while(is(s, Token::String)) {
-            AstStrPtr str;
-            location(s, create(str));
-            str->value = make_string(top(s).value);
-            ptr->elements.push_back(str);
+            str->value.append(make_string(top(s).value));
             expect(s, Token::String);
-        }
-        if(ptr->elements.size() == 1) {
-            ast = ptr->elements.front();
         }
     }
     /*
