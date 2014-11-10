@@ -410,7 +410,7 @@ bool not_test(State & s, AstExpr & ast) {
     }
     return guard.commit();
 }
-#if 0
+
 bool testlist1(State & s, AstExpr & ast) {
     StateGuard guard(s, ast);
     location(s, create(ast));
@@ -434,7 +434,6 @@ bool testlist1(State & s, AstExpr & ast) {
     }
     return guard.commit();
 }
-#endif
 
 bool testlist_safe(State & s, AstExpr & ast) {
     StateGuard guard(s, ast);
@@ -734,7 +733,7 @@ bool atom(State & s, AstExpr & ast) {
         AstReprPtr ptr;
         location(s, create(ptr));
         ast = ptr;
-        if(!testlist(s, ptr->value)) {
+        if(!testlist1(s, ptr->value)) {
             return false;
         }
         if(!expect(s, TokenKind::BackQuote)) {
@@ -1023,6 +1022,7 @@ bool exec_stmt(State & s, AstStmt & ast) {
     StateGuard guard(s, ast);
     AstExecPtr exec;
     location(s, create(exec));
+    ast = exec;
     // expect(s, Token::KeywordExec) expr [expect(s, Token::KeywordIn) test [expect(s, TokenKind::Comma) test]]
     if(!expect(s, Token::KeywordExec)) {
         return false;

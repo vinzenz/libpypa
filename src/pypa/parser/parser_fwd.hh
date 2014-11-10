@@ -94,6 +94,7 @@ namespace pypa {
     bool term(State & s, AstExpr & ast);
     bool test(State & s, AstExpr & ast);
     bool testlist(State & s, AstExpr & ast);
+    bool testlist1(State & s, AstExpr & ast);
 #if 0
     bool testlist_comp(State & s, AstExpr & ast);
 #endif
