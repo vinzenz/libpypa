@@ -28,9 +28,9 @@ namespace pypa {
     inline file_handle_t open_file(char const * file_path) {
         file_handle_t v{};
 #if defined(WIN32)
-        v.win = ::CreateFileA(file_path, GENERIC_READ, 0, 0, OPEN_EXISTING, 0, 0);
+        v = ::CreateFileA(file_path, GENERIC_READ, 0, 0, OPEN_EXISTING, 0, 0);
 #else
-        v.unix = ::open(file_path, O_RDONLY);
+        v = ::open(file_path, O_RDONLY);
 #endif
         return v;
     }
@@ -56,11 +56,11 @@ namespace pypa {
 
     FileBuf::~FileBuf() {
 #if defined(WIN32)
-        if (handle_.win != INVALID_HANDLE_VALUE) {
-            CloseHandle(handle_.win);
+        if (handle_!= INVALID_HANDLE_VALUE) {
+            CloseHandle(handle_);
         }
 #else
-        ::close(handle_.unix);
+        ::close(handle_);
 #endif
     }
 
@@ -94,14 +94,14 @@ namespace pypa {
     bool FileBuf::fill_buffer() {
 #if defined(WIN32)
         int n = -1;
-        if (handle_.win != INVALID_HANDLE_VALUE) {
+        if (handle_!= INVALID_HANDLE_VALUE) {
             DWORD bytes_read = 0;
-            if (::ReadFile(handle_.win, buffer_, BufferSize, &bytes_read, 0)) {
+            if (::ReadFile(handle_, buffer_, BufferSize, &bytes_read, 0)) {
                 n = int(bytes_read);
             }
         }
 #else
-        int n = read(handle_.unix, buffer_, BufferSize);
+        int n = read(handle_, buffer_, BufferSize);
 #endif
         position_ = 0;
         length_ = n <= 0 ? 0 : unsigned(n);
