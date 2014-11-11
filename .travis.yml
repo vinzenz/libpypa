@@ -1,0 +1,13 @@
+language: cpp
+compiler:
+  - clang
+
+install:
+  - sudo apt-get install cmake libgmp3-dev
+# libstdc++-4.8-dev
+  - sudo add-apt-repository --yes ppa:ubuntu-toolchain-r/test
+  - sudo apt-get -qq update
+  - sudo apt-get -qq install libstdc++-4.8-dev
+
+script:
+  - cmake . && make
