@@ -39,6 +39,10 @@ src/double-conversion/double-conversionConfig.cmake
 src/double-conversion/double-conversionConfigVersion.cmake
 src/double-conversion/double-conversionLibraryDepends.cmake
 
+Testing/
+test/CTestTestfile.cmake
+test/Testing/
+
 .ninja_deps
 .ninja_log
 build.ninja
