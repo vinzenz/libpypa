@@ -5,4 +5,4 @@ add_subdirectory(src)
 add_subdirectory(test)
 
 # check
-add_custom_target(check_libpypa COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure DEPENDS pypa parser-test lexer-test WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/test)
+add_custom_target(check-libpypa COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure DEPENDS pypa parser-test lexer-test WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/test)
