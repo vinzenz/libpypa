@@ -14,3 +14,40 @@ do
     echo "Parsing $file"
     ./parser-test $file &> ./results/`basename $file`.ast.out && rm -f ./results/`basename $file`.ast.out
 done
+
+
+BADSYN3=0
+BADSYN8=0
+BADSYN9=0
+PY3TEST=0
+FAILURE=0
+for result in `ls ./results`;
+do
+    case $result in
+        badsyntax_future3.py.ast.out)
+            BADSYN3=1
+            continue
+        ;;
+        badsyntax_future8.py.ast.out)
+            BADSYN8=1
+            continue
+        ;;
+        badsyntax_future9.py.ast.out)
+            BADSYN9=1
+            continue
+        ;;
+        py3_test_grammar.py.ast.out)
+            PY3TEST=1
+            continue
+        ;;
+    esac
+    FAILURE=1
+    echo "Failed to parse $result"
+done;
+
+SUCCESS=1
+if [ $FAILURE = 0 ] && [ $BADSYN3 = 1 ] && [ $BADSYN8 = 1 ] && [ $BADSYN9 = 1 ] && [ $PY3TEST = 1 ];
+then
+    SUCCESS=0
+fi
+exit $SUCCESS
