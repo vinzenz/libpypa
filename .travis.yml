@@ -11,3 +11,19 @@ install:
 
 script:
   - cmake . && make
+
+env:
+  global:
+   # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
+   #   via the "travis encrypt" command using the project repo's public key
+   - secure: "a3CnWMzTKAied4cDb/vW3wBrZyqkMtavYTA6ptbv2fZxaG5maZg2RGiDMmAkgdpa9VJTyF7qnZHn+eGpa2svYs3hafX8kF6h0BHOMlNh+tKKPIh3gsK9BeZoXR4h2r25av/0FAK96f7zkpEhGEENDaQZ7dDNKn/mb85DWV43+nw="
+
+addons:
+  coverity_scan:
+    project:
+      name: "vinzenz/libpypa"
+      description: "Build submitted via Travis CI"
+    notification_email: evilissimo@gmail.com
+    build_command_prepend: "cmake . -G \"Unix Makefiles\"; make clean"
+    build_command:   "make -j 4"
+    branch_pattern: coverity_scan
