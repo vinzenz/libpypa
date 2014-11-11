@@ -53,7 +53,7 @@ namespace pypa {
         TokenDef(Token::KeywordYield, TokenString("yield"), TokenKind::Name, TokenClass::Keyword),
         // Starting with capital
         // TokenDef(Token::KeywordFalse, TokenString("False"), TokenKind::Name, TokenClass::Keyword),
-        TokenDef(Token::KeywordNone, TokenString("None"), TokenKind::Name, TokenClass::Keyword),
+        // TokenDef(Token::KeywordNone, TokenString("None"), TokenKind::Name, TokenClass::Keyword),
         // TokenDef(Token::KeywordTrue, TokenString("True"), TokenKind::Name, TokenClass::Keyword)
     };
 

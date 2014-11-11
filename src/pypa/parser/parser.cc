@@ -22,6 +22,18 @@ namespace pypa {
 
 String make_string(String const & s);
 
+template< typename Container >
+void flatten(AstStmt s, Container & target) {
+    for(auto e : std::static_pointer_cast<AstSuite>(s)->items) {
+        if(e && e->type == AstType::Suite) {
+            flatten(e, target);
+        }
+        else {
+            target.push_back(e);
+        }
+    }
+}
+
 template<typename T>
 AstPtr error_transform(std::shared_ptr<T> const & t) {
     return t;
@@ -819,12 +831,12 @@ bool atom(State & s, AstExpr & ast) {
         ptr->value = is(s, Token::KeywordTrue);
         expect(s, Token::KeywordTrue) || expect(s, Token::KeywordFalse);
     }*/
-    else if(is(s, Token::KeywordNone)) {
+    /*else if(is(s, Token::KeywordNone)) {
         AstNonePtr ptr;
         location(s, create(ptr));
         ast = ptr;
         expect(s, Token::KeywordNone);
-    }
+    }*/
     else if((s.options.python3allowed || s.options.python3only) && is(s, TokenKind::Dot)) {
         expect(s, TokenKind::Dot);
         if(expect(s, TokenKind::Dot)) {
@@ -1003,10 +1015,20 @@ bool simple_stmt(State & s, AstStmt & ast) {
     if(!small_stmt(s, tmp)) {
         return false;
     }
-    suite_->items.push_back(tmp);
+    if(tmp && tmp->type == AstType::Suite) {
+       flatten(tmp, suite_->items);
+    }
+    else {
+       suite_->items.push_back(tmp);
+    }
     if(expect(s, TokenKind::SemiColon)) {
         while(small_stmt(s, tmp)) {
-            suite_->items.push_back(tmp);
+            if(tmp && tmp->type == AstType::Suite) {
+               flatten(tmp, suite_->items);
+            }
+            else {
+               suite_->items.push_back(tmp);
+            }
             if(!expect(s, TokenKind::SemiColon)) {
                 break;
             }
@@ -1600,15 +1622,19 @@ bool suite(State & s, AstStmt & ast) {
             AstStmt stmt_;
             if(stmt(s, stmt_)) {
                 if(stmt_->type == AstType::Suite) {
-                    AstSuitePtr s = std::static_pointer_cast<AstSuite>(stmt_);
-                    suite_->items.insert(suite_->items.end(), s->items.begin(), s->items.end());
+                    flatten(stmt_, suite_->items);
                 }
                 else {
                     suite_->items.push_back(stmt_);
                 }
                 stmt_.reset();
                 while(stmt(s, stmt_)) {
-                    suite_->items.push_back(stmt_);
+                    if(stmt_->type == AstType::Suite) {
+                        flatten(stmt_, suite_->items);
+                    }
+                    else {
+                        suite_->items.push_back(stmt_);
+                    }
                     stmt_.reset();
                 }
                 make_docstring(s, suite_);
@@ -1847,7 +1873,9 @@ bool sliceop(State & s, AstExpr & ast) {
     if(!expect(s, TokenKind::Colon)) {
         return false;
     }
-    test(s, ast);
+    if(!test(s, ast)) {
+        location(s, create<AstNone>(ast));
+    }
     return guard.commit();
 }
 
@@ -2319,7 +2347,9 @@ bool import_from(State & s, AstStmt & ast) {
                         ++iter;
                     }
                     if(!found) {
-                        syntax_error(s, e, ("future feature " + name.id + " is not defined").c_str());
+                        if(s.options.handle_future_errors) {
+                            syntax_error(s, e, ("future feature " + name.id + " is not defined").c_str());
+                        }
                     }
                     return found;
                 }
@@ -2330,12 +2360,18 @@ bool import_from(State & s, AstStmt & ast) {
             if(impfrom->names->type == AstType::Tuple) {
                 for(auto e : std::static_pointer_cast<AstTuple>(impfrom->names)->elements) {
                     if(!future_check(e)) {
-                        failure = true;
+                        if(s.options.handle_future_errors) {
+                            failure = true;
+                        }
                     }
                 }
             }
             else {
-                failure = !future_check(impfrom->names);
+                if(!future_check(impfrom->names)) {
+                    if(s.options.handle_future_errors) {
+                        failure = true;
+                    }
+                }
             }
             if(failure) {
                 return false;
@@ -2594,7 +2630,13 @@ bool file_input(State & s, AstModulePtr & ast) {
             continue;
         }
         else if(stmt(s, statement)) {
-            ast->body->items.push_back(statement);
+            if(statement && statement->type == AstType::Suite) {
+                // Flatten potential sub-suites
+                flatten(statement, ast->body->items);
+            }
+            else {
+                ast->body->items.push_back(statement);
+            }
         }
         else {
             return false;

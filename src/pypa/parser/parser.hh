@@ -28,14 +28,18 @@ struct ParserOptions {
     , docstrings(true)
     , printerrors(true)
     , printdbgerrors(false)
+    , handle_future_errors(true)
     , error_handler()
     {}
 
-    bool python3only;
-    bool python3allowed;
-    bool docstrings;
-    bool printerrors;
-    bool printdbgerrors;
+    bool python3only;          // If it is parsing python3
+    bool python3allowed;       // Whether or not python3 constructs are allowed
+    bool docstrings;           // Converts docstring strings to AstDocString
+                               // entries
+    bool printerrors;          // Prints errors itself
+    bool printdbgerrors;       // Prints internal debug information
+    bool handle_future_errors; // Handles unknown __future__ features
+                               // by reporting an error
     std::function<void(pypa::Error)> error_handler;
 };
 
