@@ -1,5 +1,17 @@
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -W -Wall -Werror -pedantic -Wno-unused-parameter -Wno-unused-local-typedefs")
+include(CheckCXXCompilerFlag)
+
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -W -Wall -Werror -pedantic -Wno-unused-parameter -Wno-unused-const-variable")
+
+check_cxx_compiler_flag(-Wno-unused-local-typedefs CXX_NO_UNUSED_LOCAL_TYPEDEFS)
+if(CXX_NO_UNUSED_LOCAL_TYPEDEFS)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-local-typedefs")
+endif()
+
+set(CLANG_FLAGS "-Qunused-arguments -fcolor-diagnostics" CACHE STRING "Clang specific C and CXX flags")
+if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CLANG_FLAGS}")
+endif()
 
 add_subdirectory(double-conversion)
 
@@ -20,9 +32,6 @@ target_link_libraries(lexer-test pypa gmp double-conversion)
 add_executable(parser-test EXCLUDE_FROM_ALL pypa/parser/test.cc)
 add_dependencies(parser-test pypa)
 target_link_libraries(parser-test pypa gmp double-conversion)
-
-# check
-add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure DEPENDS pypa parser-test lexer-test WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/test)
 
 # install
 install(TARGETS pypa ARCHIVE DESTINATION lib)
