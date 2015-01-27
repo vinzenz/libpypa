@@ -330,18 +330,28 @@ bool try_stmt(State & s, AstStmt & ast) {
     return guard.commit();
 }
 
-bool dotted_name(State & s, AstExpr & ast) {
+bool dotted_name(State & s, AstExpr & ast, bool as_dotted_name) {
     StateGuard guard(s, ast);
     if(get_name(s, ast)) {
         if(expect(s, TokenKind::Dot)) {
             assert(ast && ast->type == AstType::Name);
             AstNamePtr name = std::static_pointer_cast<AstName>(ast);
             AstExpr trailing_name;
-            if(dotted_name(s, trailing_name)) {
-                assert(trailing_name && trailing_name->type == AstType::Name);
-                AstName & trail = *std::static_pointer_cast<AstName>(trailing_name);
-                name->id += "." + trail.id;
-                name->dotted = true;
+            if(dotted_name(s, trailing_name, as_dotted_name)) {
+                if(!as_dotted_name) {
+                    assert(trailing_name && (trailing_name->type == AstType::Name || trailing_name->type == AstType::Attribute));
+                    AstAttributePtr attr;
+                    location(s, create(attr));
+                    attr->attribute = trailing_name;
+                    attr->value = name;
+                    ast = attr;
+                }
+                else {
+                    assert(trailing_name && trailing_name->type == AstType::Name);
+                    AstName & trail = *std::static_pointer_cast<AstName>(trailing_name);
+                    name->id += "." + trail.id;
+                    name->dotted = true;
+                }
                 return guard.commit();
             }
             else {
@@ -888,7 +898,7 @@ bool dotted_as_name(State & s, AstExpr & ast) {
     location(s, create(alias));
     ast = alias;
     // dotted_name [expect(s, Token::KeywordAs) expect(s, Token::Identifier)]
-    if(!dotted_name(s, alias->name)) {
+    if(!dotted_name(s, alias->name, true)) {
         return false;
     }
     if(expect(s, Token::KeywordAs)) {
@@ -1034,6 +1044,10 @@ bool simple_stmt(State & s, AstStmt & ast) {
     if(suite_->items.size() == 1) {
         ast = suite_->items.front();
     }
+/*    if(is(s, Token::End)) {
+        return guard.commit();
+    }
+*/
     if(!expect(s, TokenKind::NewLine)/* && !is(s, Token::End)*/) {
         syntax_error(s, ast, "Expected new line after statement");
         return false;
@@ -1782,10 +1796,11 @@ bool decorator(State & s, AstExpr & ast) {
     if(!expect(s, TokenKind::At)) {
         return false;
     }
-    if(!dotted_name(s, ptr->function)) {
+    if(!dotted_name(s, ptr->function, false)) {
         syntax_error(s, ast, "Expected identifier after `@`");
         return false;
     }
+    visit(context_assign{AstContext::Load}, ptr->function);
     if(expect(s, TokenKind::LeftParen)) {
         arglist(s, ptr->arglist);
         if(!expect(s, TokenKind::RightParen)) {
@@ -2278,7 +2293,7 @@ bool import_from(State & s, AstStmt & ast) {
         if(is(s, TokenKind::Dot)) {
             while(expect(s, TokenKind::Dot)) ++impfrom->level;
         }
-        if(!dotted_name(s, impfrom->module) && impfrom->level == 0) {
+        if(!dotted_name(s, impfrom->module, true) && impfrom->level == 0) {
             syntax_error(s, ast, "Expected name of module");
             return false;
         }

@@ -25,7 +25,9 @@ int main(int argc, char const ** argv) {
     pypa::AstModulePtr ast;
     pypa::SymbolTablePtr symbols;
     pypa::ParserOptions options;
-    options.python3allowed = true;
+    // options.python3allowed = true;
+    options.printerrors = true;
+    options.printdbgerrors = true;
     pypa::Lexer lexer(argv[1]);
     if(pypa::parse(lexer, ast, symbols, options)) {
         printf("Parsing successfull\n");

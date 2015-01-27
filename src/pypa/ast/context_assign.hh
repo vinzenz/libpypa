@@ -53,6 +53,7 @@ struct context_assign {
     void operator() (AstAttribute & attribute) {
         attribute.context = context;
         visit(*this, attribute.attribute);
+        visit(*this, attribute.value);
     }
 
     void operator() (AstSubscript & subscript) {
