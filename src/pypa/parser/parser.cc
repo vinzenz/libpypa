@@ -317,10 +317,7 @@ bool try_stmt(State & s, AstStmt & ast) {
         if(try_except->handlers.empty()
            && !try_except->orelse
            && try_except->body
-           && try_except->body->type == AstType::Suite
-           && std::static_pointer_cast<AstSuite>(try_except->body)->items.size() == 1
-           && std::static_pointer_cast<AstSuite>(try_except->body)->items[0]
-           && std::static_pointer_cast<AstSuite>(try_except->body)->items[0]->type == AstType::TryExcept) {
+           && try_except->body->type == AstType::Suite) {
             ptr->body = try_except->body;
         }
         else {
