@@ -340,6 +340,7 @@ bool dotted_name(State & s, AstExpr & ast, bool as_dotted_name) {
             if(dotted_name(s, trailing_name, as_dotted_name)) {
                 if(!as_dotted_name) {
                     assert(trailing_name && (trailing_name->type == AstType::Name || trailing_name->type == AstType::Attribute));
+                    visit(context_assign{AstContext::Load}, name);
                     AstAttributePtr attr;
                     location(s, create(attr));
                     attr->attribute = trailing_name;
@@ -1044,10 +1045,10 @@ bool simple_stmt(State & s, AstStmt & ast) {
     if(suite_->items.size() == 1) {
         ast = suite_->items.front();
     }
-/*    if(is(s, Token::End)) {
+    if(is(s, Token::End)) {
         return guard.commit();
     }
-*/
+
     if(!expect(s, TokenKind::NewLine)/* && !is(s, Token::End)*/) {
         syntax_error(s, ast, "Expected new line after statement");
         return false;
@@ -1800,7 +1801,6 @@ bool decorator(State & s, AstExpr & ast) {
         syntax_error(s, ast, "Expected identifier after `@`");
         return false;
     }
-    visit(context_assign{AstContext::Load}, ptr->function);
     if(expect(s, TokenKind::LeftParen)) {
         arglist(s, ptr->arglist);
         if(!expect(s, TokenKind::RightParen)) {
