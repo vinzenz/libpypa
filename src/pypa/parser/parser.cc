@@ -20,7 +20,7 @@
 
 namespace pypa {
 
-String make_string(String const & s);
+String make_string(String const & s, bool & unicode);
 
 template< typename Container >
 void flatten(AstStmt s, Container & target) {
@@ -826,8 +826,9 @@ bool atom(State & s, AstExpr & ast) {
         AstStrPtr str;
         location(s, create(str));
         ast = str;
+        str->unicode = s.future_features.unicode_literals;
         while(is(s, Token::String)) {
-            str->value.append(make_string(top(s).value));
+            str->value.append(make_string(top(s).value, str->unicode));
             expect(s, Token::String);
         }
     }
@@ -1615,6 +1616,7 @@ void make_docstring(State & s, AstSuitePtr & suite_) {
                 AstDocStringPtr ptr;
                 clone_location(txt, create(ptr));
                 ptr->doc = txt->value;
+                ptr->unicode = txt->unicode;
                 suite_->items[0] = ptr;
             }
         }

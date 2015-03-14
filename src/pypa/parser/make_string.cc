@@ -14,6 +14,9 @@
 
 #include <pypa/types.hh>
 #include <cassert>
+#include <cstring>
+#include <iconv.h>
+#include <errno.h>
 
 namespace pypa {
 
@@ -27,39 +30,65 @@ inline bool islower(char c) {
     return (c >= 'a' && c <= 'z');
 }
 
-String make_string(String const & input) {
+inline unsigned int hex_digit_to_dec(char c) {
+    if (isdigit(c))
+        return c - '0';
+    else if (islower(c))
+        return 10 + c - 'a';
+    return 10 + c - 'A';
+}
+
+unsigned int number_from_hex_chars(char const * & s, int num_bytes_to_read) {
+    assert(num_bytes_to_read <= 8);
+    unsigned int result = 0;
+    for(int i=0; i<num_bytes_to_read; ++i) {
+        char c = *s;
+        if(!isxdigit(c))
+            assert(0 && ""); // TODO emit error
+        s++;
+        result = (result << 4) | hex_digit_to_dec(c);
+    }
+    return result;
+}
+
+static String convert_utf32le_to_utf8(unsigned int cp) {
+    char out[8];
+    memset(out, 0, sizeof(out));
+    size_t in_bytes_left = 4;
+    size_t out_bytes_left = sizeof(out);
+    iconv_t cd = iconv_open("UTF-8", "UTF-32le");
+    char* in_position = (char*)&cp;
+    char* out_position = out;
+    int rc = iconv(cd, &in_position, &in_bytes_left, &out_position, &out_bytes_left);
+    assert(rc != -1 && "iconv failed");
+    iconv_close(cd);
+    return String(out, out_position-out);
+}
+
+String make_string(String const & input, bool & unicode) {
     String result;
     size_t first_quote  = input.find_first_of("\"'");
     assert(first_quote != String::npos);
     char quote = input[first_quote];
     size_t string_start = input.find_first_not_of(quote, first_quote);
-    if(string_start == String::npos) {
-        // Empty string
-        return result;
-    }
-    assert((string_start - first_quote) < input.size());
-    size_t string_end =  input.size() - (string_start - first_quote);
-    assert(string_end != String::npos && string_start <= string_end);
 
-    char const * s = input.c_str() + string_start;
-    char const * end = input.c_str() + string_end;
     char const * qst = input.c_str() + first_quote;
     char const * tmp = input.c_str();
 
-    // bool unicode = false;
     bool raw = false;
     // bool bytes = false;
 
     while(tmp != qst) {
         switch(*tmp) {
         case 'u': case 'U':
-            // unicode = true;
+            unicode = true;
             break;
         case 'r': case 'R':
             raw = true;
             break;
         case 'b': case 'B':
             // bytes = true;
+            unicode = false;
             break;
         default:
             assert("Unknown character prefix" && false);
@@ -69,6 +98,17 @@ String make_string(String const & input) {
     }
 
 
+    if(string_start == String::npos) {
+        // Empty string
+        return result;
+    }
+
+    assert((string_start - first_quote) < input.size());
+    size_t string_end =  input.size() - (string_start - first_quote);
+    assert(string_end != String::npos && string_start <= string_end);
+
+    char const * s = input.c_str() + string_start;
+    char const * end = input.c_str() + string_end;
 
     std::back_insert_iterator<String> p((result));
 
@@ -105,35 +145,24 @@ String make_string(String const & input) {
                     }
                     *p++ = c;
                     break;
-                case 'x':
-                    if (s+1 < end && isxdigit(s[0]) && isxdigit(s[1]))
-                    {
-                        unsigned int x = 0;
-                        c = *s;
-                        s++;
-                        if (isdigit(c))
-                            x = c - '0';
-                        else if (islower(c))
-                            x = 10 + c - 'a';
-                        else
-                            x = 10 + c - 'A';
-                        x = x << 4;
-                        c = *s;
-                        s++;
-                        if (isdigit(c))
-                            x += c - '0';
-                        else if (islower(c))
-                            x += 10 + c - 'a';
-                        else
-                            x += 10 + c - 'A';
-                        *p++ = x;
+                case 'x': {
+                    unsigned int x = number_from_hex_chars(s, 2);
+                    if(unicode) {
+                        String str = convert_utf32le_to_utf8(x);
+                        std::copy(str.begin(), str.end(), p);
+                    } else {
+                        *p++ = static_cast<unsigned char>(x);
+                    }
+                    break;
+                }
+                default:
+                    if(unicode && (c == 'u' || c == 'U')) {
+                        unsigned int x = number_from_hex_chars(s, c == 'u' ? 4 : 8);
+                        String str = convert_utf32le_to_utf8(x);
+                        std::copy(str.begin(), str.end(), p);
                         break;
                     }
-                    /* skip \x */
-                    if (s < end && isxdigit(s[0]))
-                        s++; /* and a hexdigit */
-                    break;
-                default:
+
                     *p++ = '\\';
                     s--;
                 }
