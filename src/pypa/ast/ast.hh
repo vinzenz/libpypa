@@ -156,8 +156,9 @@ PYPA_AST_MEMBERS3(DictComp, generators, key, value);
 
 PYPA_AST_STMT(DocString) {
     String doc;
+    bool unicode;
 };
-PYPA_AST_MEMBERS1(DocString, doc);
+PYPA_AST_MEMBERS2(DocString, doc, unicode);
 
 PYPA_AST_EXPR(EllipsisObject) {};
 PYPA_AST_MEMBERS0(EllipsisObject);
@@ -347,8 +348,9 @@ PYPA_AST_MEMBERS3(Slice, lower, step, upper);
 
 PYPA_AST_EXPR(Str) {
     String value;
+    bool unicode;
 };
-PYPA_AST_MEMBERS1(Str, value);
+PYPA_AST_MEMBERS2(Str, value, unicode);
 
 PYPA_AST_EXPR(Subscript) {
     AstExpr         value;
