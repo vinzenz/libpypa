@@ -27,39 +27,29 @@ inline bool islower(char c) {
     return (c >= 'a' && c <= 'z');
 }
 
-String make_string(String const & input) {
+String make_string(String const & input, bool & unicode, bool & raw) {
     String result;
     size_t first_quote  = input.find_first_of("\"'");
     assert(first_quote != String::npos);
     char quote = input[first_quote];
     size_t string_start = input.find_first_not_of(quote, first_quote);
-    if(string_start == String::npos) {
-        // Empty string
-        return result;
-    }
-    assert((string_start - first_quote) < input.size());
-    size_t string_end =  input.size() - (string_start - first_quote);
-    assert(string_end != String::npos && string_start <= string_end);
 
-    char const * s = input.c_str() + string_start;
-    char const * end = input.c_str() + string_end;
     char const * qst = input.c_str() + first_quote;
     char const * tmp = input.c_str();
 
-    // bool unicode = false;
-    bool raw = false;
     // bool bytes = false;
-
+    raw = false;
     while(tmp != qst) {
         switch(*tmp) {
         case 'u': case 'U':
-            // unicode = true;
+            unicode = true;
             break;
         case 'r': case 'R':
             raw = true;
             break;
         case 'b': case 'B':
             // bytes = true;
+            unicode = false;
             break;
         default:
             assert("Unknown character prefix" && false);
@@ -69,12 +59,23 @@ String make_string(String const & input) {
     }
 
 
+    if(string_start == String::npos) {
+        // Empty string
+        return result;
+    }
+
+    assert((string_start - first_quote) < input.size());
+    size_t string_end =  input.size() - (string_start - first_quote);
+    assert(string_end != String::npos && string_start <= string_end);
+
+    char const * s = input.c_str() + string_start;
+    char const * end = input.c_str() + string_end;
 
     std::back_insert_iterator<String> p((result));
 
     while(s < end) {
         char c = *s;
-        if(raw) {
+        if(raw || unicode) {
             *p++ = *s++;
         }
         else { // !raw

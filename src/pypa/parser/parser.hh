@@ -17,6 +17,7 @@
 #include <pypa/ast/ast.hh>
 #include <pypa/lexer/lexer.hh>
 #include <pypa/parser/symbol_table.hh>
+#include <pypa/types.hh>
 #include <functional>
 
 namespace pypa {
@@ -41,6 +42,7 @@ struct ParserOptions {
     bool handle_future_errors; // Handles unknown __future__ features
                                // by reporting an error
     std::function<void(pypa::Error)> error_handler;
+    std::function<pypa::String(pypa::String, bool raw_prefix, bool & error)> unicode_escape_handler;
 };
 
 bool parse(Lexer & lexer,
