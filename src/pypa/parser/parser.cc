@@ -1661,7 +1661,7 @@ bool suite(State & s, AstStmt & ast) {
                     stmt_.reset();
                 }
                 make_docstring(s, suite_);
-                if(!expect(s, Token::Dedent)) {
+                if(!expect(s, Token::Dedent) && !is(s, Token::End)) {
                     indentation_error(s, ast);
                     return false;
                 }
