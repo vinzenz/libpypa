@@ -2419,7 +2419,7 @@ bool import_as_names(State & s, AstExpr & ast) {
             break;
         }
     }
-    if(!is(s, TokenKind::NewLine) && !is(s, TokenKind::SemiColon) && !is(s, TokenKind::RightParen)) {
+    if(!is(s, TokenKind::NewLine) && !is(s, TokenKind::SemiColon) && !is(s, TokenKind::RightParen) && !is(s, Token::End)) {
         syntax_error(s, ast, "Unexpected token");
         return false;
     }
