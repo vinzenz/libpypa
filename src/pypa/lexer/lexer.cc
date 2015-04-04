@@ -219,7 +219,11 @@ namespace pypa {
                         if(cur == '\r') continue;
                     }
                     if (cur == '\\') {
-                        tok.value.push_back(next_char());
+                        char c = next_char();
+                        if (c == '\r')
+                            tok.value.push_back(next_char());
+                        else
+                            tok.value.push_back(c);
                     }
                 }
             };
