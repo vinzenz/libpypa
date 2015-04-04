@@ -2662,6 +2662,7 @@ bool file_input(State & s, AstModulePtr & ast) {
             }
         }
         else {
+            syntax_error(s, ast, "invalid syntax");
             return false;
         }
     }
