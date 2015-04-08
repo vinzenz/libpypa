@@ -1,16 +1,15 @@
 language: cpp
+
 compiler:
   - clang
+  - gcc
 
-install:
-  - sudo apt-get install cmake libgmp3-dev
-# libstdc++-4.8-dev
-  - sudo add-apt-repository --yes ppa:ubuntu-toolchain-r/test
-  - sudo apt-get -qq update
-  - sudo apt-get -qq install libstdc++-4.8-dev
+# use travis-ci docker based infrastructure
+sudo: false
 
-script:
-  - cmake . && make
+cache:
+  directories:
+    - $HOME/.ccache
 
 env:
   global:
@@ -19,6 +18,17 @@ env:
    - secure: "a3CnWMzTKAied4cDb/vW3wBrZyqkMtavYTA6ptbv2fZxaG5maZg2RGiDMmAkgdpa9VJTyF7qnZHn+eGpa2svYs3hafX8kF6h0BHOMlNh+tKKPIh3gsK9BeZoXR4h2r25av/0FAK96f7zkpEhGEENDaQZ7dDNKn/mb85DWV43+nw="
 
 addons:
+  apt:
+    sources:
+    - llvm-toolchain-precise-3.5
+    - ubuntu-toolchain-r-test
+    packages:
+    - ccache
+    - clang-3.5
+    - cmake
+    - g++-4.8
+    - gcc-4.8
+    - libgmp3-dev
   coverity_scan:
     project:
       name: "vinzenz/libpypa"
@@ -27,3 +37,10 @@ addons:
     build_command_prepend: "cmake . && make clean"
     build_command:   "make -j 4"
     branch_pattern: coverity_scan
+
+before_install:
+  - if [ "$CC" = "clang" ]; then export CC="clang-3.5" CXX="clang++-3.5"; fi
+  - if [ "$CC" = "gcc" ]; then export CC="gcc-4.8" CXX="g++-4.8"; fi
+
+script:
+  - cmake . && make
