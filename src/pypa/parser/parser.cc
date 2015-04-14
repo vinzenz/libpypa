@@ -330,29 +330,47 @@ bool try_stmt(State & s, AstStmt & ast) {
     return guard.commit();
 }
 
-bool dotted_name(State & s, AstExpr & ast, bool as_dotted_name) {
+bool dotted_name_list(State & s, AstExpr & ast) {
+    std::vector<AstExpr> names;
+    do {
+        AstExpr name;
+        if(!get_name(s, name)) {
+            if(!names.empty()) {
+                syntax_error(s, names.back(), "Expected identifier after `.`");
+                return false;
+            }
+            break;
+        }
+        assert(name && name->type == AstType::Name);
+        visit(context_assign{AstContext::Load}, name);
+        names.push_back(std::move(name));
+    } while(expect(s, TokenKind::Dot));
+    if(names.empty()) {
+        return false;
+    }
+    ast = names[0];
+    for(auto it = names.begin() + 1; it != names.end(); ++it) {
+        AstAttributePtr attr;
+        location(s, create(attr));
+        attr->attribute = *it;
+        attr->value = ast;
+        ast = attr;
+    }
+    return true;
+}
+
+bool dotted_name(State & s, AstExpr & ast) {
     StateGuard guard(s, ast);
     if(get_name(s, ast)) {
         if(expect(s, TokenKind::Dot)) {
             assert(ast && ast->type == AstType::Name);
             AstNamePtr name = std::static_pointer_cast<AstName>(ast);
             AstExpr trailing_name;
-            if(dotted_name(s, trailing_name, as_dotted_name)) {
-                if(!as_dotted_name) {
-                    assert(trailing_name && (trailing_name->type == AstType::Name || trailing_name->type == AstType::Attribute));
-                    visit(context_assign{AstContext::Load}, name);
-                    AstAttributePtr attr;
-                    location(s, create(attr));
-                    attr->attribute = trailing_name;
-                    attr->value = name;
-                    ast = attr;
-                }
-                else {
-                    assert(trailing_name && trailing_name->type == AstType::Name);
-                    AstName & trail = *std::static_pointer_cast<AstName>(trailing_name);
-                    name->id += "." + trail.id;
-                    name->dotted = true;
-                }
+            if(dotted_name(s, trailing_name)) {
+                assert(trailing_name && trailing_name->type == AstType::Name);
+                AstName & trail = *std::static_pointer_cast<AstName>(trailing_name);
+                name->id += "." + trail.id;
+                name->dotted = true;
                 return guard.commit();
             }
             else {
@@ -909,7 +927,7 @@ bool dotted_as_name(State & s, AstExpr & ast) {
     location(s, create(alias));
     ast = alias;
     // dotted_name [expect(s, Token::KeywordAs) expect(s, Token::Identifier)]
-    if(!dotted_name(s, alias->name, true)) {
+    if(!dotted_name(s, alias->name)) {
         return false;
     }
     if(expect(s, Token::KeywordAs)) {
@@ -1808,7 +1826,7 @@ bool decorator(State & s, AstExpr & ast) {
     if(!expect(s, TokenKind::At)) {
         return false;
     }
-    if(!dotted_name(s, ptr->function, false)) {
+    if(!dotted_name_list(s, ptr->function)) {
         syntax_error(s, ast, "Expected identifier after `@`");
         return false;
     }
@@ -2304,7 +2322,7 @@ bool import_from(State & s, AstStmt & ast) {
         if(is(s, TokenKind::Dot)) {
             while(expect(s, TokenKind::Dot)) ++impfrom->level;
         }
-        if(!dotted_name(s, impfrom->module, true) && impfrom->level == 0) {
+        if(!dotted_name(s, impfrom->module) && impfrom->level == 0) {
             syntax_error(s, ast, "Expected name of module");
             return false;
         }

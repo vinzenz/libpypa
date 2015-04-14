@@ -43,7 +43,8 @@ namespace pypa {
     bool dictorsetmaker(State & s, AstExpr & ast);
     bool dotted_as_name(State & s, AstExpr & ast);
     bool dotted_as_names(State & s, AstExpr & ast);
-    bool dotted_name(State & s, AstExpr & ast, bool as_dotted_name);
+    bool dotted_name(State & s, AstExpr & ast);
+    bool dotted_name_list(State & s, AstExpr & ast);
 #if 0
     bool eval_input(State & s, AstModulePtr & ast);
 #endif
