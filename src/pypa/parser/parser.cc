@@ -77,7 +77,7 @@ void add_symbol_error(State & s, char const * message, int line, int column, int
 
 void syntax_error_dbg(State & s, AstPtr ast, char const * message, int line = -1, char const * file = 0, char const * function = 0) {
     TokenInfo cur = top(s);
-    if(ast && cur.line > ast->line) {
+    if(ast && cur.line < ast->line) {
         cur.line    = ast->line;
         cur.column  = ast->column;
     }
