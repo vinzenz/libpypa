@@ -2137,13 +2137,15 @@ bool fplist(State & s, AstExpr & ast) {
     AstExpr temp;
     if(fpdef(s, temp)) {
         tuple->elements.push_back(temp);
+        bool any_commas = false;
         while(expect(s, TokenKind::Comma)) {
+            any_commas = true;
             if(!fpdef(s, temp)) {
                 break;
             }
             tuple->elements.push_back(temp);
         }
-        if(tuple->elements.size() == 1) {
+        if(tuple->elements.size() == 1 && !any_commas) {
             ast = tuple->elements.front();
         }
         return guard.commit();
