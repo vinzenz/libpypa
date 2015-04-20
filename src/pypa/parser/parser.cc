@@ -2071,7 +2071,6 @@ bool dictorsetmaker(State & s, AstExpr & ast) {
                 ptr->elements.push_back(first);
                 while(expect(s, TokenKind::Comma)) {
                     if(!test(s, first)) {
-                        syntax_error(s, ast, "Expected expression after `,`");
                         break;
                     }
                     ptr->elements.push_back(first);
