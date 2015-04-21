@@ -1,5 +1,7 @@
 # libpypa - A Python Parser Library in C++
 
+[![Join the chat at https://gitter.im/vinzenz/libpypa](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/vinzenz/libpypa?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 - [Introduction](#introduction)
  - [Motivation](#introduction-motivation)
  - [Goal](#introduction-goal)
