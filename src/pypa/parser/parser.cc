@@ -504,7 +504,7 @@ bool testlist_safe(State & s, AstExpr & ast) {
     return !exprs->elements.empty() && guard.commit();
 }
 
-bool testlist_comp(State & s, AstExpr & ast, bool * last_was_comma = 0) {
+bool testlist_comp(State & s, AstExpr & ast) {
     StateGuard guard(s, ast);
     AstTuplePtr exprs;
     location(s, create(exprs));
@@ -524,20 +524,22 @@ bool testlist_comp(State & s, AstExpr & ast, bool * last_was_comma = 0) {
         }
     }
     else {
+        bool last_was_comma = false;
         exprs->elements.push_back(tmp);
         for(;;) {
             if(!expect(s, TokenKind::Comma)) {
                 break;
             }
             if(!test(s, tmp)) {
-                if(last_was_comma) *last_was_comma = true;
+                last_was_comma = true;
                 break;
             }
             exprs->elements.push_back(tmp);
         }
-    }
-    if(exprs->elements.size() == 1) {
-        ast = exprs->elements.front();
+
+        if(!last_was_comma && exprs->elements.size() == 1) {
+            ast = exprs->elements.front();
+        }
     }
     return guard.commit();
 }
@@ -727,21 +729,7 @@ bool atom(State & s, AstExpr & ast) {
     // expect(s, TokenKind::LeftParen) [yield_expr||testlist_comp] expect(s, TokenKind::RightParen)
     if(expect(s, TokenKind::LeftParen)) {
         // Either or, both optional
-        bool last_was_comma = false;
-        if(testlist_comp(s, ast, &last_was_comma)) {
-            if(ast->type != AstType::Generator) {
-                if(ast->type == AstType::Tuple) {
-                    if(!last_was_comma && static_cast<AstTuple&>(*ast).elements.size() == 1) {
-                        ast = static_cast<AstTuple&>(*ast).elements.front();
-                    }
-                }
-                else if(last_was_comma) {
-                    AstTuplePtr ptr;
-                    clone_location(ast, create(ptr));
-                    ptr->elements.push_back(ast);
-                    ast = ptr;
-                }
-            }
+        if(testlist_comp(s, ast)) {
         }
         else if(!yield_expr(s, ast)) {
             AstTuplePtr ptr;
