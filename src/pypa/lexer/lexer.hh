@@ -1,4 +1,4 @@
-// Copyright 2014 Vinzenz Feenstra
+﻿// Copyright 2014 Vinzenz Feenstra
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,13 +14,14 @@
 #ifndef GUARD_PYPA_TOKENIZER_LEXER_HH_INCLUDED
 #define GUARD_PYPA_TOKENIZER_LEXER_HH_INCLUDED
 
-#include <pypa/filebuf.hh>
+#include <pypa/reader.hh>
 #include <pypa/lexer/tokendef.hh>
 #include <string>
 #include <deque>
 #include <list>
 #include <vector>
 #include <stdint.h>
+#include <memory>
 
 namespace pypa {
 
@@ -49,9 +50,9 @@ class Lexer {
         AltTabSize = 1,
     };
 
-    pypa::FileBuf file_;
-    std::string input_path_;
-
+    std::unique_ptr<Reader> reader_;
+    bool read_encoding_;
+    std::string encoding_;
     uint32_t column_;
     int level_;
     int indent_;
@@ -62,12 +63,18 @@ class Lexer {
     std::list<LexerInfo> info_;
     char first_indet_char;
     std::deque<TokenInfo> token_buffer_;
+
 public:
     Lexer(char const * file_path);
+    Lexer(std::unique_ptr<Reader> reader);
+
     ~Lexer();
 
     std::string get_name() const;
     std::string get_line(int idx);
+    std::string get_encoding() const {
+        return encoding_;
+    }
 
     std::list<LexerInfo> const & info();
 
@@ -76,7 +83,8 @@ public:
 private:
     char skip();
     char skip_comment();
-    unsigned line() const { return file_.line(); }
+    char skip_comment_check_coding();
+    unsigned line() const { return reader_->get_line_number(); }
     char next_char();
     void put_char(char c);
     TokenInfo get_string(TokenInfo & tok, char first, char prefix=0);

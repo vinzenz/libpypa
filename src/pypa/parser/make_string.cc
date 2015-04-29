@@ -27,7 +27,7 @@ inline bool islower(char c) {
     return (c >= 'a' && c <= 'z');
 }
 
-String make_string(String const & input, bool & unicode, bool & raw) {
+String make_string(String const & input, bool & unicode, bool & raw, bool ignore_escaping) {
     String result;
     size_t first_quote  = input.find_first_of("\"'");
     assert(first_quote != String::npos);
@@ -75,7 +75,7 @@ String make_string(String const & input, bool & unicode, bool & raw) {
 
     while(s < end) {
         char c = *s;
-        if(raw || unicode) {
+        if(raw || unicode || ignore_escaping) {
             *p++ = *s++;
         }
         else { // !raw
@@ -147,6 +147,5 @@ String make_string(String const & input, bool & unicode, bool & raw) {
     }
     return result;
 }
-
 
 }
