@@ -14,7 +14,9 @@
 #ifndef GUARD_PYPA_FILEBUF_HH_INCLUDED
 #define GUARD_PYPA_FILEBUF_HH_INCLUDED
 
+#include <pypa/reader.hh>
 #include <cstddef>
+#include <string>
 
 namespace pypa {
 
@@ -45,6 +47,23 @@ public:
     bool utf8() const;
 private:
     bool fill_buffer();
+};
+
+
+class FileBufReader : public Reader {
+public:
+    FileBufReader(const std::string & file_name);
+    ~FileBufReader() override {}
+
+    bool set_encoding(const std::string & coding) override { return true; }
+    std::string get_line() override;
+    unsigned get_line_number() const override { return buf_.line(); }
+    std::string get_filename() const override { return file_name_; }
+    bool eof() const override { return buf_.eof(); }
+
+private:
+    std::string file_name_;
+    FileBuf buf_;
 };
 
 }

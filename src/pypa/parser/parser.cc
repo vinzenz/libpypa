@@ -20,7 +20,7 @@
 
 namespace pypa {
 
-String make_string(String const & input, bool & unicode, bool & raw);
+String make_string(String const & input, bool & unicode, bool & raw, bool ignore_escaping);
 
 template< typename Container >
 void flatten(AstStmt s, Container & target) {
@@ -833,17 +833,21 @@ bool atom(State & s, AstExpr & ast) {
         location(s, create(str));
         ast = str;
         str->unicode = s.future_features.unicode_literals;
+        bool use_external_escape_handler = bool(s.options.escape_handler);
         while(is(s, Token::String)) {
             bool raw_string = false;
-            String value = make_string(top(s).value, str->unicode, raw_string);
-            if (str->unicode) {
+            String value = make_string(top(s).value, str->unicode, raw_string, use_external_escape_handler);
+            if(use_external_escape_handler) {
                 bool error = false;
-                assert(s.options.unicode_escape_handler && "unicode_escape_handler not set!");
-                value = s.options.unicode_escape_handler(value, raw_string, error);
-                if (error)
+                value = s.options.escape_handler(value, s.lexer->get_encoding(), str->unicode, raw_string, error);
+                if(error)
                     syntax_error(s, ast, value.c_str());
+                else
+                    str->value.append(value);
             }
-            str->value.append(value);
+            else {
+                str->value.append(value);
+            }
             expect(s, Token::String);
         }
     }
@@ -2703,6 +2707,11 @@ bool parse(Lexer & lexer,
     state.lexer = &lexer;
     state.tok_cur = lexer.next();
     state.options = options;
+
+    if(is(state, Token::EncodingError)) {
+        syntax_error(state, AstPtr(), state.tok_cur.value.c_str());
+        return false;
+    }
 
     if(file_input(state, ast)) {
         symbols = create_symbol_table(ast, state);

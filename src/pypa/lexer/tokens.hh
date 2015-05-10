@@ -28,6 +28,7 @@ namespace pypa {
         DedentationError,
         LineContinuationError,
         UnterminatedStringError,
+        EncodingError,
 
         Comment,
         BackQuote,

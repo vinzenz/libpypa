@@ -107,6 +107,25 @@ namespace pypa {
         length_ = n <= 0 ? 0 : unsigned(n);
         return length_ != 0;
     }
+
+
+    FileBufReader::FileBufReader(const std::string & file_name)
+    : file_name_(file_name), buf_(file_name.c_str())
+    {
+    }
+
+    std::string FileBufReader::get_line() {
+        std::string line;
+        char c;
+        do {
+            c = buf_.next();
+            if(buf_.eof())
+                break;
+            line.push_back(c);
+        } while(c != '\n' && c != '\x0c');
+        return line;
+    }
+
 }
 
 

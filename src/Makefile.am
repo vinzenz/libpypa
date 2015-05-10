@@ -37,6 +37,7 @@ check-local:lexer-test parser-test $(srcdir)/run-tests.sh
 pypadir=$(includedir)/pypa
 pypa_HEADERS=\
 	pypa/filebuf.hh \
+	pypa/reader.hh \
 	pypa/types.hh \
 	$(NULL)
 

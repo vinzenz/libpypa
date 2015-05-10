@@ -15,6 +15,7 @@
 #include <pypa/lexer/op.hh>
 #include <pypa/lexer/keyword.hh>
 #include <pypa/lexer/delim.hh>
+#include <pypa/filebuf.hh>
 #include <stack>
 #include <cassert>
 #include <fstream>
@@ -56,12 +57,21 @@ namespace pypa {
             ;
     }
 
+    inline bool is_coding_char(char c) {
+        return (c >= 'a' && c <= 'z')
+            || (c >= 'A' && c <= 'Z')
+            || (c >= '0' && c <= '9')
+            || (c == '-')
+            || (c == '_')
+            || (c == '.');
+    }
+
     std::string Lexer::get_name() const {
-        return input_path_;
+        return reader_->get_filename();
     }
 
     std::string Lexer::get_line(int idx) {
-        std::ifstream ifs(input_path_.c_str());
+        std::ifstream ifs(reader_->get_filename());
         std::string line;
         int lineno = 1;
         while(std::getline(ifs, line) && lineno != idx) {
@@ -71,8 +81,13 @@ namespace pypa {
     }
 
     Lexer::Lexer(char const * file_path)
-    : file_{file_path}
-    , input_path_{file_path}
+    : Lexer(std::unique_ptr<FileBufReader>(new FileBufReader(file_path)))
+    {}
+
+    Lexer::Lexer(std::unique_ptr<Reader> reader)
+    : reader_(std::move(reader))
+    , read_encoding_{false}
+    , encoding_{"iso-8859-1"}
     , column_{0}
     , level_{0}
     , indent_{0}
@@ -99,8 +114,8 @@ namespace pypa {
             return tmp;
         }
         TokenInfo tok = {{
-            (file_.eof() ? Token::End : Token::Invalid),
-            (file_.eof() ? TokenKind::End : TokenKind::Error),
+            (reader_->eof() ? Token::End : Token::Invalid),
+            (reader_->eof() ? TokenKind::End : TokenKind::Error),
             TokenClass::Default},
             line(), column_, {} };
         char c1 = next_char();
@@ -198,7 +213,7 @@ namespace pypa {
         if(quote_count != 2 && quote_count != 6) {
             while(end_quote_count != quote_count) {
                 cur = next_char();
-                if(file_.eof()) {
+                if(reader_->eof()) {
                     return make_token(tok,
                             Token::UnterminatedStringError,
                             TokenKind::Error);
@@ -394,7 +409,10 @@ namespace pypa {
     char Lexer::next_char() {
         column_++;
         if (lex_buffer_.empty()) {
-            return file_.next();
+            std::string line = reader_->get_line();
+            if (line.empty() && reader_->eof())
+                return -1;
+            lex_buffer_.insert(lex_buffer_.end(), line.begin(), line.end());
         }
         char c = lex_buffer_.front();
         lex_buffer_.pop_front();
@@ -410,7 +428,55 @@ namespace pypa {
         char c = 0;
         do {
             c = next_char();
-        } while(!file_.eof() && c != '\n');
+        } while(!reader_->eof() && c != '\n');
+        return c;
+    }
+
+    char Lexer::skip_comment_check_coding() {
+        std::string line_str;
+        char c = 0;
+        do {
+            c = next_char();
+            line_str.push_back(c);
+        } while(!reader_->eof() && c != '\n');
+
+        size_t pos = 0;
+        for(;;) {
+            pos = line_str.find("coding", pos);
+
+            if(pos == std::string::npos)
+                break;
+
+            pos += 6 /* = strlen("coding")*/;
+
+            if(line_str[pos] != ':' && line_str[pos] != '=')
+                continue;
+
+            do {
+                pos++;
+            } while(line_str[pos] == '\x20' || line_str[pos] == '\t');
+
+            std::string coding;
+            while(is_coding_char(line_str[pos])) {
+                coding.push_back(line_str[pos]);
+                ++pos;
+            }
+
+            if (!coding.empty()) {
+                encoding_ = coding;
+                if(!reader_->set_encoding(coding)) {
+                    token_buffer_.push_back({
+                        {Token::EncodingError,
+                         TokenKind::Error,
+                         TokenClass::Default},
+                        line(),
+                        column_,
+                        "encoding problem: " + coding});
+                }
+                read_encoding_ = true;
+                break;
+            }
+        }
         return c;
     }
 
@@ -422,8 +488,11 @@ namespace pypa {
             c = next_char();
             switch(c) {
             case '#':
-                c = skip_comment();
-                if(file_.eof()) {
+                if(!read_encoding_ && line() < 3)
+                    c = skip_comment_check_coding();
+                else
+                    c = skip_comment();
+                if(reader_->eof()) {
                     return c;
                 }
                 // It should now continue with newline
