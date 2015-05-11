@@ -130,8 +130,9 @@ namespace pypa {
         case '"': case '\'':
             return get_string(tok, c0);
         case 'r': case 'b': case 'u':
+        case 'R': case 'B': case 'U':
             ctmp = c1;
-            if(c1 == 'r' && (c0 == 'u' || c0 == 'b')) {
+            if((c1 == 'r' || c1 == 'R') && (c0 == 'u' || c0 == 'b' || c0 == 'U' || c0 == 'B')) {
                 ctmp = c2;
             }
             if(ctmp == '\'' || ctmp == '"')
