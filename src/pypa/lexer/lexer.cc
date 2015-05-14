@@ -215,7 +215,7 @@ namespace pypa {
         if(quote_count != 2 && quote_count != 6) {
             while(end_quote_count != quote_count) {
                 cur = next_char();
-                if(reader_->eof()) {
+                if(cur == -1 && reader_->eof()) {
                     return make_token(tok,
                             Token::UnterminatedStringError,
                             TokenKind::Error);
