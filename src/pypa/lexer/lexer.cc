@@ -97,6 +97,7 @@ namespace pypa {
     , info_{}
     , first_indet_char{0}
     , token_buffer_{}
+    , ignore_altindent_errors_{true}
     {}
 
     Lexer::~Lexer(){}
@@ -598,6 +599,7 @@ namespace pypa {
     }
 
     bool Lexer::handle_indentation(bool continuation) {
+        const int tab_size = 8;
         int col = 0, alt_col = 0;
         char c = 0;
         int changes = 0;
@@ -607,7 +609,7 @@ namespace pypa {
                 ++col; ++alt_col;
             }
             else if(c == '\t') {
-                col += 8;
+                col = (col/tab_size+1)*tab_size;
                 alt_col += 1;
             }
             else {
@@ -626,12 +628,12 @@ namespace pypa {
         }
 
         if(col == indent_stack_[indent_]) {
-            if(alt_col != alt_indent_stack_[indent_]) {
+            if(!ignore_altindent_errors_ && alt_col != alt_indent_stack_[indent_]) {
                 return add_indent_error();
             }
         }
         else if(col > indent_stack_[indent_]) {
-            if(alt_col <= alt_indent_stack_[indent_]) {
+            if(!ignore_altindent_errors_ && alt_col <= alt_indent_stack_[indent_]) {
                 return add_indent_error();
             }
             ++indent_;
@@ -654,7 +656,7 @@ namespace pypa {
             if(col != indent_stack_[indent_]) {
                 return add_indent_error(true);
             }
-            if(alt_col != alt_indent_stack_[indent_]) {
+            if(!ignore_altindent_errors_ && alt_col != alt_indent_stack_[indent_]) {
                 return add_indent_error();
             }
         }

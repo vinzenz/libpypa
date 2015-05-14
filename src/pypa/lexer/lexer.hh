@@ -63,6 +63,7 @@ class Lexer {
     std::list<LexerInfo> info_;
     char first_indet_char;
     std::deque<TokenInfo> token_buffer_;
+    bool ignore_altindent_errors_;
 
 public:
     Lexer(char const * file_path);
@@ -74,6 +75,11 @@ public:
     std::string get_line(int idx);
     std::string get_encoding() const {
         return encoding_;
+    }
+
+    // Emit error if alternate tabs don't match (default: off)
+    void set_ignore_altindent_errors(bool ignore) {
+        ignore_altindent_errors_ = ignore;
     }
 
     std::list<LexerInfo> const & info();
