@@ -618,8 +618,8 @@ namespace pypa {
         }
         put_char(c);
         if(continuation || level_ != 0 || c == '#' || c == '\n' || c == '\r' || c == '\x0c') {
-            if(c == '#') {
-                // If this line is a commented line, don't emit NewLine
+            if(c == '#' || c == '\n') {
+                // If this line is a commented line or an empty line, don't emit NewLine
                 if(!token_buffer_.empty() && token_buffer_.back().ident.id() == Token::NewLine) {
                     token_buffer_.pop_back();
                 }
