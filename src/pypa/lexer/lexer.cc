@@ -397,7 +397,7 @@ namespace pypa {
                 return get_number_octal(tok, c1);
             case 'j': case 'J':
                 return get_number_complex(tok, c1);
-            case '.':
+            case '.': case 'e': case 'E':
                 return get_number_float(tok, c1);
             }
             return get_number_octal(tok, c1);
