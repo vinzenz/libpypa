@@ -14,14 +14,15 @@
 #ifndef GUARD_PYPA_TOKENIZER_LEXER_HH_INCLUDED
 #define GUARD_PYPA_TOKENIZER_LEXER_HH_INCLUDED
 
-#include <pypa/reader.hh>
-#include <pypa/lexer/tokendef.hh>
 #include <string>
 #include <deque>
 #include <list>
 #include <vector>
-#include <stdint.h>
+#include <cstdint>
 #include <memory>
+
+#include <pypa/reader.hh>
+#include <pypa/lexer/tokendef.hh>
 
 namespace pypa {
 

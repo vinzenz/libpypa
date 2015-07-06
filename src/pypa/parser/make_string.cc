@@ -12,8 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <pypa/types.hh>
 #include <cassert>
+
+#include <pypa/types.hh>
 
 namespace pypa {
 

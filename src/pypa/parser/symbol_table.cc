@@ -11,10 +11,11 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+#include <cassert>
+
 #include <pypa/parser/symbol_table.hh>
 #include <pypa/parser/symbol_table_visitor.hh>
 #include <pypa/ast/tree_walker.hh>
-#include <cassert>
 
 namespace pypa {
     void SymbolTable::enter_block(BlockType type, String const & name, Ast & a) {

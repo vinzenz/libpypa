@@ -21,7 +21,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #endif
-#include <stdio.h>
+#include <cstdio>
 
 namespace pypa {
 

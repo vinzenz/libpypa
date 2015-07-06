@@ -11,12 +11,15 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+#include <cassert>
+
 #include <gmp.h>
+
 #include <pypa/parser/apply.hh>
 #include <pypa/parser/parser_fwd.hh>
 #include <double-conversion/src/double-conversion.h>
 #include <pypa/ast/context_assign.hh>
-#include <cassert>
 
 namespace pypa {
 

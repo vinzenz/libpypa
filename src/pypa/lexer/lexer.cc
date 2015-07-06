@@ -11,14 +11,15 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+#include <stack>
+#include <cassert>
+#include <fstream>
+
 #include <pypa/lexer/lexer.hh>
 #include <pypa/lexer/op.hh>
 #include <pypa/lexer/keyword.hh>
 #include <pypa/lexer/delim.hh>
 #include <pypa/filebuf.hh>
-#include <stack>
-#include <cassert>
-#include <fstream>
 
 namespace pypa {
     inline bool is_ident_char(char c, bool first = false) {

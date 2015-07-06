@@ -14,9 +14,10 @@
 #ifndef GUARD_PYPA_FILEBUF_HH_INCLUDED
 #define GUARD_PYPA_FILEBUF_HH_INCLUDED
 
-#include <pypa/reader.hh>
 #include <cstddef>
 #include <string>
+
+#include <pypa/reader.hh>
 
 namespace pypa {
 

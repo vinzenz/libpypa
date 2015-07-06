@@ -11,9 +11,10 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+#include <cassert>
+
 #include <pypa/ast/visitor.hh>
 #include <pypa/ast/tree_walker.hh>
-#include <cassert>
 
 namespace pypa {
 
