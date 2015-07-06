@@ -11,8 +11,10 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+#include <cstdio>
+
 #include <pypa/parser/parser.hh>
-#include <stdio.h>
 
 namespace pypa {
     void dump(AstPtr);
@@ -20,6 +22,7 @@ namespace pypa {
 
 int main(int argc, char const ** argv) {
     if(argc != 2) {
+        fprintf(stderr, "Usage: %s <python_file_path>\n", argv[0]);
         return 1;
     }
     pypa::AstModulePtr ast;
@@ -34,7 +37,7 @@ int main(int argc, char const ** argv) {
         dump(ast);
     }
     else {
-        printf("Parsing failed\n");
+        fprintf(stderr, "Parsing failed\n");
         return 1;
     }
     return 0;

@@ -14,11 +14,12 @@
 #ifndef GUARD_PYPA_PARSER_PARSER_HH_INCLUDED
 #define GUARD_PYPA_PARSER_PARSER_HH_INCLUDED
 
+#include <functional>
+
 #include <pypa/ast/ast.hh>
 #include <pypa/lexer/lexer.hh>
 #include <pypa/parser/symbol_table.hh>
 #include <pypa/types.hh>
-#include <functional>
 
 namespace pypa {
 

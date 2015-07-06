@@ -47,3 +47,5 @@ test/Testing/
 .ninja_log
 build.ninja
 rules.ninja
+
+CMakeLists.txt.user
