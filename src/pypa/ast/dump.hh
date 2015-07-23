@@ -64,7 +64,7 @@ namespace pypa {
         }
 
         inline void dump_member_value(int depth, char const * v) {
-            printf("RAW BUFFER: %p\n", v);
+            printf("RAW BUFFER: %p\n", static_cast<void const*>(v));
         }
 
         inline void dump_member_value(int depth, bool v) {
