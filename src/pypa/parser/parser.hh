@@ -32,6 +32,7 @@ struct ParserOptions {
     , printdbgerrors(false)
     , handle_future_errors(true)
     , error_handler()
+    , perform_inline_optimizations(false)
     {}
 
     bool python3only;          // If it is parsing python3
@@ -49,6 +50,8 @@ struct ParserOptions {
                                bool raw_prefix,
                                bool & error
                               )> escape_handler;
+    bool perform_inline_optimizations; // If inline optimizations should be
+                                       // performed
 };
 
 bool parse(Lexer & lexer,

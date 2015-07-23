@@ -1127,42 +1127,44 @@ bool factor(State & s, AstExpr & ast) {
             unary->op = AstUnaryOpType::Invert;
         }
         if(factor(s, unary->operand)) {
-            // Translating (-1) immediately to -1
-            if(unary->operand && unary->op == AstUnaryOpType::Sub) {
-                if(unary->operand->type == AstType::Number) {
-                    AstNumberPtr p = std::static_pointer_cast<AstNumber>(unary->operand);
-                    switch(p->num_type) {
-                    case AstNumber::Float:
-                        p->floating *= -1.;
-                        break;
-                    case AstNumber::Integer:
-                        p->integer *= -1;
-                        break;
-                    case AstNumber::Long:
-                        p->str = '-' + p->str;
-                        break;
-                    }
-                    ast = p;
-                }
-                if(unary->operand->type == AstType::Complex) {
-                    AstComplexPtr p = std::static_pointer_cast<AstComplex>(unary->operand);
-                    if(p->real) {
-                        switch(p->real->num_type) {
+            if(s.options.perform_inline_optimizations) {
+                // Translating (-1) immediately to -1
+                if(unary->operand && unary->op == AstUnaryOpType::Sub) {
+                    if(unary->operand->type == AstType::Number) {
+                        AstNumberPtr p = std::static_pointer_cast<AstNumber>(unary->operand);
+                        switch(p->num_type) {
                         case AstNumber::Float:
-                            p->real->floating *= -1.;
+                            p->floating *= -1.;
                             break;
                         case AstNumber::Integer:
-                            p->real->integer *= -1;
+                            p->integer *= -1;
                             break;
                         case AstNumber::Long:
-                            p->real->str = '-' + p->real->str;
+                            p->str = '-' + p->str;
                             break;
                         }
                         ast = p;
                     }
-                    else {
-                        p->imag = '-' + p->imag;
-                        ast = p;
+                    if(unary->operand->type == AstType::Complex) {
+                        AstComplexPtr p = std::static_pointer_cast<AstComplex>(unary->operand);
+                        if(p->real) {
+                            switch(p->real->num_type) {
+                            case AstNumber::Float:
+                                p->real->floating *= -1.;
+                                break;
+                            case AstNumber::Integer:
+                                p->real->integer *= -1;
+                                break;
+                            case AstNumber::Long:
+                                p->real->str = '-' + p->real->str;
+                                break;
+                            }
+                            ast = p;
+                        }
+                        else {
+                            p->imag = '-' + p->imag;
+                            ast = p;
+                        }
                     }
                 }
             }
