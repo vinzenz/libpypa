@@ -1732,6 +1732,11 @@ bool expr_stmt(State & s, AstStmt & ast) {
             case AstType::Attribute:
             case AstType::Subscript:
                 break;
+            case AstType::Number:
+            case AstType::Str:
+            case AstType::Dict:
+                syntax_error(s, target, "can't assign to literal");
+                return false;
             default:
                 syntax_error(s, target, "Illegal expression for augmented assignment");
                 return false;
@@ -1751,13 +1756,32 @@ bool expr_stmt(State & s, AstStmt & ast) {
         }
         else {
             if(is(s, TokenKind::Equal)) {
+                auto tgt_lit = [](AstPtr target) -> bool {
+                    switch(target->type) {
+                    case AstType::Number:
+                    case AstType::Str:
+                    case AstType::Dict:
+                        return true;
+                    default:
+                        break;
+                    }
+                    return false;
+                };
                 AstAssignPtr ptr;
                 location(s, create(ptr));
+                if(tgt_lit(target)) {
+                    syntax_error(s, target, "can't assign to literal");
+                    return false;
+                }
                 ptr->targets.push_back(target);
                 visit(context_assign{AstContext::Store}, target);
                 ast = ptr;
                 while(expect(s, TokenKind::Equal)) {
                     if(ptr->value) {
+                        if(tgt_lit(ptr->value)) {
+                            syntax_error(s, target, "can't assign to literal");
+                            return false;
+                        }
                         visit(context_assign{AstContext::Store}, ptr->value);
                         ptr->targets.push_back(ptr->value);
                         ptr->value.reset();
@@ -1768,6 +1792,8 @@ bool expr_stmt(State & s, AstStmt & ast) {
                         return false;
                     }
                     ptr->value = value;
+                }
+                for(AstPtr target : ptr->targets) {
                 }
             }
         }
