@@ -72,6 +72,7 @@ namespace pypa {
     }
 
     std::string Lexer::get_line(int idx) {
+        idx = idx ? idx - 1 : idx;
         std::ifstream ifs(reader_->get_filename());
         std::string line;
         int lineno = 1;
