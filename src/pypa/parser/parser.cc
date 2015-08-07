@@ -1784,6 +1784,7 @@ bool expr_stmt(State & s, AstStmt & ast) {
                     case AstType::Name:
                     case AstType::Attribute:
                     case AstType::Subscript:
+                    case AstType::Tuple:
                         break;
                     default:
                         syntax_error(s, target, "Illegal expression for assignment");
