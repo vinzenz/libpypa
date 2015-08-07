@@ -1784,8 +1784,12 @@ bool expr_stmt(State & s, AstStmt & ast) {
                     case AstType::Name:
                     case AstType::Attribute:
                     case AstType::Subscript:
-                    case AstType::Tuple:
+                    case AstType::List:
                         break;
+                    case AstType::Tuple:
+                        if(!std::static_pointer_cast<AstTuple>(target)->elements.empty()) {
+                            break; // Break on non empty tuples only
+                        }
                     default:
                         syntax_error(s, target, "Illegal expression for assignment");
                         return false;
