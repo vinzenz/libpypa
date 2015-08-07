@@ -295,6 +295,7 @@ namespace pypa {
 
         bool operator() (AstReturn & r) {
             if(r.value) {
+                table->current->returns_value = true;
                 if(table->current->is_generator) {
                     PYPA_ADD_SYMBOL_ERR("Return value in generator", r);
                 }
