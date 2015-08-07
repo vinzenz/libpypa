@@ -473,16 +473,14 @@ bool testlist1(State & s, AstExpr & ast) {
     if(is(s, TokenKind::Comma)) {
         AstTuplePtr exprs;
         clone_location(ast, create(exprs));
+        exprs->elements.push_back(ast);
         ast = exprs;
         while(expect(s, TokenKind::Comma)) {
             AstExpr temp;
             if(!test(s, temp)) {
-                return false;
+                break;
             }
             exprs->elements.push_back(temp);
-        }
-        if(exprs->elements.size() == 1) {
-            ast = exprs->elements.front();
         }
     }
     return guard.commit();
@@ -1253,7 +1251,7 @@ bool subscript(State & s, AstExpr & ast) {
     else {
         AstIndexPtr index;
         location(s, create(index));
-        test(s, index->value);
+        testlist1(s, index->value);
         if(expect(s, TokenKind::Colon)) {
             AstSlicePtr slice;
             clone_location(index, create(slice));
@@ -1734,6 +1732,15 @@ bool expr_stmt(State & s, AstStmt & ast) {
             case AstType::Attribute:
             case AstType::Subscript:
                 break;
+            case AstType::Generator:
+                syntax_error(s, target, "can't assign to generator expression");
+                return false;
+            case AstType::SetComp:
+                syntax_error(s, target, "can't assign to set comprehension");
+                return false;
+            case AstType::ListComp:
+                syntax_error(s, target, "can't assign to list comprehension");
+                return false;
             case AstType::Number:
             case AstType::Str:
             case AstType::Dict:
@@ -1758,21 +1765,35 @@ bool expr_stmt(State & s, AstStmt & ast) {
         }
         else {
             if(is(s, TokenKind::Equal)) {
-                auto tgt_lit = [](AstPtr target) -> bool {
+                auto check_assign = [&s](AstPtr target) -> bool {
                     switch(target->type) {
                     case AstType::Number:
                     case AstType::Str:
                     case AstType::Dict:
-                        return true;
-                    default:
+                        syntax_error(s, target, "can't assign to literal");
+                        return false;
+                    case AstType::Generator:
+                        syntax_error(s, target, "can't assign to generator expression");
+                        return false;
+                    case AstType::SetComp:
+                        syntax_error(s, target, "can't assign to set comprehension");
+                        return false;
+                    case AstType::ListComp:
+                        syntax_error(s, target, "can't assign to list comprehension");
+                        return false;
+                    case AstType::Name:
+                    case AstType::Attribute:
+                    case AstType::Subscript:
                         break;
+                    default:
+                        syntax_error(s, target, "Illegal expression for assignment");
+                        return false;
                     }
-                    return false;
+                    return true;
                 };
                 AstAssignPtr ptr;
                 location(s, create(ptr));
-                if(tgt_lit(target)) {
-                    syntax_error(s, target, "can't assign to literal");
+                if(!check_assign(target)) {
                     return false;
                 }
                 ptr->targets.push_back(target);
@@ -1780,8 +1801,7 @@ bool expr_stmt(State & s, AstStmt & ast) {
                 ast = ptr;
                 while(expect(s, TokenKind::Equal)) {
                     if(ptr->value) {
-                        if(tgt_lit(ptr->value)) {
-                            syntax_error(s, target, "can't assign to literal");
+                        if(!check_assign(ptr->value)) {
                             return false;
                         }
                         visit(context_assign{AstContext::Store}, ptr->value);
