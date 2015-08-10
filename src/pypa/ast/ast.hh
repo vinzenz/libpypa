@@ -163,7 +163,7 @@ PYPA_AST_MEMBERS2(DocString, doc, unicode);
 PYPA_AST_EXPR(EllipsisObject) {};
 PYPA_AST_MEMBERS0(EllipsisObject);
 
-PYPA_AST_EXPR(Ellipsis) {};
+PYPA_AST_SLICE(Ellipsis) {};
 PYPA_AST_MEMBERS0(Ellipsis);
 
 PYPA_AST_STMT(Exec) {
@@ -186,8 +186,8 @@ PYPA_AST_STMT(ExpressionStatement) {
 };
 PYPA_AST_MEMBERS1(ExpressionStatement, expr);
 
-PYPA_AST_EXPR(ExtSlice) {
-    AstExprList dims;
+PYPA_AST_SLICE(ExtSlice) {
+    AstSliceTypeList dims;
 };
 PYPA_AST_MEMBERS1(ExtSlice, dims);
 
@@ -232,7 +232,7 @@ PYPA_AST_EXPR(IfExpr) {
 };
 PYPA_AST_MEMBERS3(IfExpr, body, orelse, test);
 
-PYPA_AST_EXPR(Index) {
+PYPA_AST_SLICE(Index) {
     AstExpr value;
 };
 PYPA_AST_MEMBERS1(Index, value);
@@ -339,7 +339,7 @@ PYPA_AST_EXPR(SetComp) {
 };
 PYPA_AST_MEMBERS2(SetComp, element, generators);
 
-PYPA_AST_EXPR(Slice) {
+PYPA_AST_SLICE(Slice) {
     AstExpr lower;
     AstExpr upper;
     AstExpr step;
@@ -354,7 +354,7 @@ PYPA_AST_MEMBERS2(Str, value, unicode);
 
 PYPA_AST_EXPR(Subscript) {
     AstExpr         value;
-    AstExpr         slice;
+    AstSliceTypePtr slice;
     AstContext      context;
 };
 PYPA_AST_MEMBERS3(Subscript, context, slice, value);

@@ -67,5 +67,16 @@ PYPA_AST_STMT(Suite) {
 };
 PYPA_AST_MEMBERS1(Suite, items);
 
+PYPA_AST_TYPE_DECL_DERIVED_ALIAS(SliceType, AstSliceTypePtr, AstSliceTypeList) {
+    using AstT<AstType::SliceType>::AstT;
+};
+DEF_AST_TYPE_BY_ID1(SliceType);
+PYPA_AST_MEMBERS0(SliceType);
+
+template<AstType Type>
+struct AstSliceTypeT : AstT<Type, AstSliceType> {
+    AstSliceTypeT() : AstT<Type, AstSliceType>(Type){}
+};
+
 }
 #endif // GUARD_PYPA_AST_BASE_HH_INCLUDED

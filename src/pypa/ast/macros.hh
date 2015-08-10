@@ -74,6 +74,10 @@
     DEF_AST_TYPE_BY_ID(AST_TYPE, struct Ast##AST_TYPE);                 \
     struct Ast##AST_TYPE : AstExprT<AstType::AST_TYPE>
 
+#define PYPA_AST_SLICE(AST_TYPE)                                        \
+    typedef std::shared_ptr<struct Ast##AST_TYPE> Ast##AST_TYPE##Ptr;   \
+    DEF_AST_TYPE_BY_ID(AST_TYPE, struct Ast##AST_TYPE);                 \
+    struct Ast##AST_TYPE : AstSliceTypeT<AstType::AST_TYPE>
 
 #define PYPA_AST_MEMBER_DUMP_IMPL_BEGIN(TYPEID)                                     \
     template<>                                                                      \

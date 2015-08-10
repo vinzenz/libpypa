@@ -1236,7 +1236,7 @@ bool global_stmt(State & s, AstStmt & ast) {
     return false;
 }
 
-bool subscript(State & s, AstExpr & ast) {
+bool subscript(State & s, AstSliceTypePtr & ast) {
     StateGuard guard(s, ast);
     // expect(s, TokenKind::Dot) expect(s, TokenKind::Dot) expect(s, TokenKind::Dot) || test || [test] expect(s, TokenKind::Colon) [test] [sliceop]
     if(is(s, TokenKind::Dot)) {
@@ -1434,7 +1434,7 @@ bool subscriptlist(State & s, AstExtSlice & ast) {
     StateGuard guard(s);
     location(s, ast);
     // subscript (expect(s, TokenKind::Comma) subscript)* [expect(s, TokenKind::Comma)]
-    AstExpr item;
+    AstSliceTypePtr item;
     if(!subscript(s, item)) {
         return false;
     }
