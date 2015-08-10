@@ -1,8 +1,9 @@
-# libpypa - A Python Parser Library in C++
-
-[![Join the chat at https://gitter.im/vinzenz/libpypa](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/vinzenz/libpypa?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Coverity Scan Build Status](https://scan.coverity.com/projects/3460/badge.svg)](https://scan.coverity.com/projects/3460)
 [![Build Status](https://travis-ci.org/vinzenz/libpypa.png?branch=master)](https://travis-ci.org/vinzenz/libpypa)
+
+[![Join the chat at https://gitter.im/vinzenz/libpypa](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/vinzenz/libpypa?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
+# libpypa - A Python Parser Library in C++
 
 - [Introduction](#introduction)
  - [Motivation](#introduction-motivation)
