@@ -15,7 +15,7 @@ do
     ./parser-test $file &> ./results/`basename $file`.ast.out && rm -f ./results/`basename $file`.ast.out
 done
 
-
+BADSYNNOCARET=0
 BADSYN3=0
 BADSYN8=0
 BADSYN9=0
@@ -40,13 +40,17 @@ do
             PY3TEST=1
             continue
         ;;
+        badsyntax_nocaret.py.ast.out)
+            BADSYNNOCARET=1
+            continue
+        ;;
     esac
     FAILURE=1
     echo "Failed to parse $result"
 done;
 
 SUCCESS=1
-if [ $FAILURE = 0 ] && [ $BADSYN3 = 1 ] && [ $BADSYN8 = 1 ] && [ $BADSYN9 = 1 ] && [ $PY3TEST = 1 ];
+if [ $FAILURE = 0 ] && [ $BADSYN3 = 1 ] && [ $BADSYN8 = 1 ] && [ $BADSYN9 = 1 ] && [ $PY3TEST = 1 ] && [ $BADSYNNOCARET = 1 ];
 then
     SUCCESS=0
 fi

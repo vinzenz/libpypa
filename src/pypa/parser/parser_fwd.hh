@@ -89,7 +89,7 @@ namespace pypa {
     bool sliceop(State & s, AstExpr & ast);
     bool small_stmt(State & s, AstStmt & ast);
     bool stmt(State & s, AstStmt & ast);
-    bool subscript(State & s, AstExpr & ast);
+    bool subscript(State & s, AstSliceTypePtr & ast);
     bool subscriptlist(State & s, AstExtSlice & ast);
     bool suite(State & s, AstStmt & ast);
     bool term(State & s, AstExpr & ast);
