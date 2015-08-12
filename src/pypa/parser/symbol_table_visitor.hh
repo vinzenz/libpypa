@@ -362,7 +362,6 @@ namespace pypa {
         }
 
         bool operator() (AstContinue & c) {
-            printf("Woot Cont?\n");
             if(!table->current->in_loop) {
                 PYPA_ADD_SYMBOL_ERR("'continue' not properly in loop", c);
             }
@@ -370,7 +369,6 @@ namespace pypa {
         }
 
         bool operator() (AstBreak & b) {
-            printf("Woot? Break\n");
             if(!table->current->in_loop) {
                 PYPA_ADD_SYMBOL_ERR("'break' outside loop", b);
             }
