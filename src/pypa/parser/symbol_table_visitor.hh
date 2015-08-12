@@ -75,7 +75,7 @@ namespace pypa {
                     params(t.elements, false);
                 }
             }
-        }
+        }        
 
         void params(AstExprList & args, bool toplevel) {
             for(size_t i = 0; i < args.size(); ++i) {
@@ -359,6 +359,43 @@ namespace pypa {
                 table->current->unoptimized |= OptimizeFlag_BareExec;
             }
             return true;
+        }
+
+        bool operator() (AstContinue & c) {
+            printf("Woot Cont?\n");
+            if(!table->current->in_loop) {
+                PYPA_ADD_SYMBOL_ERR("'continue' not properly in loop", c);
+            }
+            return true;
+        }
+
+        bool operator() (AstBreak & b) {
+            printf("Woot? Break\n");
+            if(!table->current->in_loop) {
+                PYPA_ADD_SYMBOL_ERR("'break' outside loop", b);
+            }
+            return true;
+        }
+
+        bool operator() (AstFor & f) {
+            visit(*this, f.target);
+            visit(*this, f.iter);
+            bool previous = table->current->in_loop;
+            table->current->in_loop = true;
+            walk_tree(f.body, *this);
+            table->current->in_loop = previous;
+            walk_tree(f.orelse, *this);
+            return false;
+        }
+
+        bool operator() (AstWhile & f) {
+            visit(*this, f.test);
+            bool previous = table->current->in_loop;
+            table->current->in_loop = true;
+            walk_tree(f.body, *this);
+            table->current->in_loop = previous;
+            walk_tree(f.orelse, *this);
+            return false;
         }
 
         bool operator() (AstName & n) {
