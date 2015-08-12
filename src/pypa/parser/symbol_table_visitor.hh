@@ -365,6 +365,9 @@ namespace pypa {
             if(!table->current->in_loop) {
                 PYPA_ADD_SYMBOL_ERR("'continue' not properly in loop", c);
             }
+            else if(table->current->in_finally) {
+                PYPA_ADD_SYMBOL_ERR("'continue' not supported inside 'finally' clause", c);
+            }
             return true;
         }
 
@@ -375,13 +378,27 @@ namespace pypa {
             return true;
         }
 
+        bool operator() (AstTryFinally & t) {
+            walk_tree(t.body, *this);
+            bool previous = table->current->in_finally;
+            if(t.final_body) {
+                table->current->in_finally = true;
+                walk_tree(t.final_body, *this);
+                table->current->in_finally = previous;
+            }
+            return false;
+        }
+
         bool operator() (AstFor & f) {
             visit(*this, f.target);
             visit(*this, f.iter);
             bool previous = table->current->in_loop;
+            bool previous_finally = table->current->in_finally;
             table->current->in_loop = true;
+            table->current->in_finally = false;
             walk_tree(f.body, *this);
             table->current->in_loop = previous;
+            table->current->in_finally = previous_finally;
             walk_tree(f.orelse, *this);
             return false;
         }
@@ -389,9 +406,12 @@ namespace pypa {
         bool operator() (AstWhile & f) {
             visit(*this, f.test);
             bool previous = table->current->in_loop;
+            bool previous_finally = table->current->in_finally;
             table->current->in_loop = true;
+            table->current->in_finally = false;
             walk_tree(f.body, *this);
             table->current->in_loop = previous;
+            table->current->in_finally = previous_finally;
             walk_tree(f.orelse, *this);
             return false;
         }

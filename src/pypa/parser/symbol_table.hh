@@ -69,6 +69,7 @@ struct SymbolTableEntry {
     bool has_varkw;
     bool is_generator;          // true if namespace is a generator
     bool in_loop;               // true if current code path is inside a loop
+    bool in_finally;            // true if current code path is inside a finally body
 
     bool has_free_vars;         // true if block has free variables
     bool child_has_free_vars;   // true if a child block has free vars,

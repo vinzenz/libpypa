@@ -25,6 +25,7 @@ namespace pypa {
         e->name         = name;
         e->is_nested    = false;
         e->in_loop      = false;
+        e->in_finally   = false;
         e->start_line   = a.line;
         symbols[e->id] = e;
 
