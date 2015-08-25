@@ -1158,12 +1158,12 @@ bool factor(State & s, AstExpr & ast) {
                             p->real->str = '-' + p->real->str;
                             break;
                         }
-                        ast = p;
                     }
-                    else {
-                        p->imag = '-' + p->imag;
-                        ast = p;
+                    if (p->imag[0] == '+') {
+                        p->imag.erase(0, 1);
                     }
+                    p->imag = '-' + p->imag;
+                    ast = p;
                 }
             }
             return guard.commit();
