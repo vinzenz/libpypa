@@ -2766,6 +2766,7 @@ bool parse(Lexer & lexer,
     state.lexer = &lexer;
     state.tok_cur = lexer.next();
     state.options = options;
+    state.future_features = options.initial_future_features;
 
     if(is(state, Token::EncodingError)) {
         syntax_error(state, AstPtr(), state.tok_cur.value.c_str());

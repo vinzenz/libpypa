@@ -43,6 +43,8 @@ struct ParserOptions {
     bool printdbgerrors;       // Prints internal debug information
     bool handle_future_errors; // Handles unknown __future__ features
                                // by reporting an error
+    FutureFeatures initial_future_features;
+
     std::function<void(pypa::Error)> error_handler;
     std::function<pypa::String(pypa::String const & value,
                                pypa::String const & encoding,
