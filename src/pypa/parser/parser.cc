@@ -1282,11 +1282,15 @@ bool decorated(State & s, AstStmt & ast) {
     if(funcdef(s, cls_or_fun)) {
         assert(cls_or_fun && cls_or_fun->type == AstType::FunctionDef);
         AstFunctionDef & fun = *std::static_pointer_cast<AstFunctionDef>(cls_or_fun);
+        fun.line = dec[0]->line;
+        fun.column = dec[0]->column;
         fun.decorators.swap(dec);
     }
     else if(classdef(s, cls_or_fun)) {
         assert(cls_or_fun && cls_or_fun->type == AstType::ClassDef);
         AstClassDef & cls = *std::static_pointer_cast<AstClassDef>(cls_or_fun);
+        cls.line = dec[0]->line;
+        cls.column = dec[0]->column;
         cls.decorators.swap(dec);
     }
     else {
