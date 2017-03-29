@@ -20,6 +20,7 @@
 
 ## Introduction
 <a name="introduction">
+
 **libpypa** is a Python parser implemented in pure *C++*. It neither uses any
 tools like [flex][1], [yacc][2], [bison][3] etc, nor is it using any parser
 framework like [Boost.Spirit][4]. It's implementation is pure C++ code.
@@ -27,6 +28,7 @@ framework like [Boost.Spirit][4]. It's implementation is pure C++ code.
 
 ### Motivation
 <a name="introduction-motivation">
+
 I started getting involved into the [pyston project][5] where it had an entry
 in their getting involved list for implementing a parser for Python. Never
 having properly tackled the problem of creating a parser library for any
@@ -36,6 +38,7 @@ implemented in Python itself.
 
 ### Goal
 <a name="introduction-goal">
+
 The first goal of the library is to support python 2.7 syntax, later on 3.x
 syntax might be added.
 
@@ -150,6 +153,7 @@ And here the parse tree of python: (astdump.py can be found in tools)
 
 ## Error Reporting
 <a name="error-reporting">
+
 The parser supports also SyntaxError and IndentionError reporting:
 
 Let's take a look at this file `syntax_error.py` which clearly has a
@@ -187,6 +191,7 @@ that would increase the clarity.
 
 ## Requirements
 <a name="requirements">
+
 To be able using **libpypa**, you have to have a *C++11* compiler available.
 **libpypa** was developed on top of *g++ 4.8.2* and it heavily uses *C++11*
 features where seen fit.
@@ -198,6 +203,7 @@ uses system libraries, but might be changed to just use `fopen`/`fread`/
 
 ## Structure
 <a name="structure">
+
 **libpypa** currently consists of 3 major parts:
 
  1. `Lexer`
@@ -206,16 +212,19 @@ uses system libraries, but might be changed to just use `fopen`/`fread`/
 
 ### Lexer
 <a name="structure-lexer">
+
 The `Lexer` portion of the library tokenizes the input for the `Parser` and
 distinguishes the different types of tokens for the `Parser`.
 
 ### Parser
 <a name="structure-parser">
+
 The `Parser` utilizes the `Lexer` to parse the input and generates a
 preliminary `AST` from the input.
 
 ### AST
 <a name="structure-ast">
+
 The AST contains the definition of all syntax elements in the code. The main
 parts of the definition are in `pypa/ast/ast.hh` which makes heavily use of
 preprocessor macros to define typedefs, mappings for compile time type lookups
@@ -227,6 +236,7 @@ set the type id value and initialize the line and column values.
 
 ## License
 <a name="license">
+
     Copyright 2014 Vinzenz Feenstra
 
     Licensed under the Apache License, Version 2.0 (the "License");
