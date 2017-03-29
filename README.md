@@ -17,14 +17,16 @@
  - [AST](#structure-ast)
 - [License](#license)
 
-<a name="introduction">
+
 ## Introduction
+<a name="introduction">
 **libpypa** is a Python parser implemented in pure *C++*. It neither uses any
 tools like [flex][1], [yacc][2], [bison][3] etc, nor is it using any parser
 framework like [Boost.Spirit][4]. It's implementation is pure C++ code.
 
-<a name="introduction-motivation">
+
 ### Motivation
+<a name="introduction-motivation">
 I started getting involved into the [pyston project][5] where it had an entry
 in their getting involved list for implementing a parser for Python. Never
 having properly tackled the problem of creating a parser library for any
@@ -32,13 +34,14 @@ language, I decided it might be worth a try, since most of the libraries I
 found, where basically just using the builtin Python parser or where
 implemented in Python itself.
 
-<a name="introduction-goal">
 ### Goal
+<a name="introduction-goal">
 The first goal of the library is to support python 2.7 syntax, later on 3.x
 syntax might be added.
 
-<a name="example">
+
 ## Example
+<a name="example">
 
 An example file:
 
@@ -145,8 +148,8 @@ And here the parse tree of python: (astdump.py can be found in tools)
         ]
 
 
-<a name="error-reporting">
 ## Error Reporting
+<a name="error-reporting">
 The parser supports also SyntaxError and IndentionError reporting:
 
 Let's take a look at this file `syntax_error.py` which clearly has a
@@ -182,8 +185,8 @@ And this of cpython 2.7:
 **libpypa** uses different error messages than python, however in the hopes that
 that would increase the clarity.
 
-<a name="requirements">
 ## Requirements
+<a name="requirements">
 To be able using **libpypa**, you have to have a *C++11* compiler available.
 **libpypa** was developed on top of *g++ 4.8.2* and it heavily uses *C++11*
 features where seen fit.
@@ -193,26 +196,26 @@ standard library with the exception of the `class FileBuf` which currently
 uses system libraries, but might be changed to just use `fopen`/`fread`/
 `fclose`.
 
-<a name="structure">
 ## Structure
+<a name="structure">
 **libpypa** currently consists of 3 major parts:
 
  1. `Lexer`
  2. `Parser`
  3. `AST`
 
-<a name="structure-lexer">
 ### Lexer
+<a name="structure-lexer">
 The `Lexer` portion of the library tokenizes the input for the `Parser` and
 distinguishes the different types of tokens for the `Parser`.
 
-<a name="structure-parser">
 ### Parser
+<a name="structure-parser">
 The `Parser` utilizes the `Lexer` to parse the input and generates a
 preliminary `AST` from the input.
 
-<a name="structure-ast">
 ### AST
+<a name="structure-ast">
 The AST contains the definition of all syntax elements in the code. The main
 parts of the definition are in `pypa/ast/ast.hh` which makes heavily use of
 preprocessor macros to define typedefs, mappings for compile time type lookups
@@ -222,8 +225,8 @@ The AST types do not implement any methods, they are just structures with data.
 The only thing which is in there for some of the bases is the constructor, to
 set the type id value and initialize the line and column values.
 
-<a name="license">
 ## License
+<a name="license">
     Copyright 2014 Vinzenz Feenstra
 
     Licensed under the Apache License, Version 2.0 (the "License");
