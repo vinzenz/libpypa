@@ -339,6 +339,7 @@ namespace pypa {
                 tok.ident = {Token::NumberFloat, TokenKind::Number, TokenClass::Literal};
                 break;
             }
+            // fallthrough
         case 'e': case 'E':
             tok.ident = {Token::NumberFloat, TokenKind::Number, TokenClass::Literal};
             tok.value.push_back(first);

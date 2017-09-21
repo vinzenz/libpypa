@@ -17,6 +17,7 @@
 #include <list>
 #include <memory>
 #include <stack>
+#include <functional>
 #include <unordered_set>
 #include <unordered_map>
 

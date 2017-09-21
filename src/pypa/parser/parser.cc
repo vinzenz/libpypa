@@ -1794,6 +1794,7 @@ bool expr_stmt(State & s, AstStmt & ast) {
                         if(!std::static_pointer_cast<AstTuple>(target)->elements.empty()) {
                             break; // Break on non empty tuples only
                         }
+                        // fallthrough
                     default:
                         syntax_error(s, target, "Illegal expression for assignment");
                         return false;
