@@ -72,14 +72,7 @@ namespace pypa {
     }
 
     std::string Lexer::get_line(int idx) {
-        idx = idx ? idx - 1 : idx;
-        std::ifstream ifs(reader_->get_filename());
-        std::string line;
-        int lineno = 1;
-        while(std::getline(ifs, line) && lineno != idx) {
-            ++lineno;
-        }
-        return line;
+        return reader_->get_line(idx);
     }
 
     Lexer::Lexer(char const * file_path)
@@ -414,7 +407,7 @@ namespace pypa {
     char Lexer::next_char() {
         column_++;
         if (lex_buffer_.empty()) {
-            std::string line = reader_->get_line();
+            std::string line = reader_->next_line();
             if (line.empty() && reader_->eof())
                 return -1;
             lex_buffer_.insert(lex_buffer_.end(), line.begin(), line.end());

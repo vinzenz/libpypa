@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 #include <pypa/filebuf.hh>
+#include <fstream>
 
 #if defined(WIN32)
 #include <windows.h>
@@ -114,7 +115,19 @@ namespace pypa {
     {
     }
 
-    std::string FileBufReader::get_line() {
+    std::string FileBufReader::get_line(size_t idx) {
+        idx = idx ? idx - 1 : idx;
+        std::ifstream ifs(get_filename());
+        std::string line;
+        size_t lineno = 1;
+        while(std::getline(ifs, line) && lineno != idx) {
+            ++lineno;
+        }
+        return line;
+
+    }
+
+    std::string FileBufReader::next_line() {
         std::string line;
         char c;
         do {

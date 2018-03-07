@@ -25,7 +25,8 @@ public:
     virtual ~Reader() {}
 
     virtual bool set_encoding(const std::string & coding) = 0;
-    virtual std::string get_line() = 0;
+    virtual std::string next_line() = 0;
+    virtual std::string get_line(size_t idx) = 0;
     virtual unsigned get_line_number() const = 0;
     virtual std::string get_filename() const = 0;
     virtual bool eof() const = 0;
