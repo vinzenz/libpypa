@@ -279,7 +279,7 @@ PYPA_AST_EXPR(Number) {
     union {
         double  floating;
         int64_t integer;
-        char    data[sizeof(floating) > sizeof(integer) ? sizeof(floating) : sizeof(integer)];
+        char    data[sizeof(double) > sizeof(int64_t) ? sizeof(double) : sizeof(int64_t)];
     };
     String str;
 };

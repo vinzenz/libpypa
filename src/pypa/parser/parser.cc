@@ -99,8 +99,13 @@ void indentation_error_dbg(State & s, AstPtr ast, int line = -1, char const * fi
     report_error(s);
 }
 
+#ifdef _WIN32
+#define syntax_error(s, AST_ITEM, msg) syntax_error_dbg(s, error_transform(AST_ITEM), msg, __LINE__, __FILE__, __func__)
+#define indentation_error(s, AST_ITEM) indentation_error_dbg(s, error_transform(AST_ITEM), __LINE__, __FILE__, __func__)
+#else
 #define syntax_error(s, AST_ITEM, msg) syntax_error_dbg(s, error_transform(AST_ITEM), msg, __LINE__, __FILE__, __PRETTY_FUNCTION__)
 #define indentation_error(s, AST_ITEM) indentation_error_dbg(s, error_transform(AST_ITEM), __LINE__, __FILE__, __PRETTY_FUNCTION__)
+#endif
 
 bool number_from_base(int64_t base, State & s, AstNumberPtr & ast) {
     String const & value = top(s).value;

@@ -19,8 +19,13 @@
 
 namespace pypa {
 
+#ifdef _WIN32
+#define PYPA_ADD_SYMBOL_ERR(MSG, AST) add_error(MSG, AST, __LINE__, __FILE__, __func__)
+#define PYPA_ADD_SYMBOL_WARN(MSG, AST) add_warn(MSG, AST, __LINE__, __FILE__, __func__)
+#else
 #define PYPA_ADD_SYMBOL_ERR(MSG, AST) add_error(MSG, AST, __LINE__, __FILE__, __PRETTY_FUNCTION__)
 #define PYPA_ADD_SYMBOL_WARN(MSG, AST) add_warn(MSG, AST, __LINE__, __FILE__, __PRETTY_FUNCTION__)
+#endif
 
     struct symbol_table_visitor {
         SymbolTablePtr table;
